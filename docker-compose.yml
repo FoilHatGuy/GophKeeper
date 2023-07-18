@@ -1,0 +1,11 @@
+version: "3.2"
+services:
+  database:
+    container_name: pg_container
+    image: postgres:15-alpine
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_PASSWORD: "1111"
+    volumes:
+      - /pg_data:/var/lib/postgresql/data

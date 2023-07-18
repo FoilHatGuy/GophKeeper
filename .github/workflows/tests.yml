@@ -1,0 +1,34 @@
+name: tests
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+  workflow_dispatch:
+jobs:
+  unit:
+    env:
+      CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Install Go
+        uses: actions/setup-go@v3
+        with:
+          go-version: 1.19.4
+          cache: true
+
+      - name: Test unit
+        run: go test -tags=!integration -race -coverprofile unit.txt -covermode atomic ./...
+
+      - name: Test integration
+        run: go test -tags=integration -race -coverprofile unit.txt -covermode atomic ./...
+
+      - name: Upload coverage report to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          file: ./unit.txt
+          flags: unit
+          name: unit
