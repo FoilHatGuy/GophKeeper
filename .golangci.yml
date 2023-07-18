@@ -88,6 +88,7 @@ linters-settings:
     ignore-words:
       - cancelled
   revive:
+    severity: error
     rules:
       - name: blank-imports
       - name: context-as-argument
@@ -227,13 +228,12 @@ linters-settings:
         # Default: false
         checkExported: true
 linters:
-  disable-all: false
   enable:
     - bodyclose
-    - depguard
     - dogsled
     - errcheck
     - errorlint
+    - gci
     - goconst
     - gocritic
     - gocyclo
@@ -245,18 +245,17 @@ linters:
     - gosec
     - gosimple
     - govet
-    - depguard
+    - ineffassign
     - lll
     - makezero
-    - ineffassign
     - nakedret
     - nestif
     - nolintlint
     - prealloc
     - predeclared
-    - rowserrcheck
     - reassign
     - revive
+    - rowserrcheck
     - staticcheck
     - stylecheck
     - unconvert
@@ -265,24 +264,13 @@ linters:
     - whitespace
     - wrapcheck
   disable:
-    - varcheck
-    - wsl
-    - tagliatelle
-    - testpackage
-    - thelper
-    - tenv
-    - typecheck
-    - varnamelen
-    - nilnil
-    - nlreturn
-    - misspell
     - cyclop
+    - depguard
     - dupl
     - exhaustive
     - exhaustivestruct
     - forbidigo
     - funlen
-    - gci
     - gochecknoglobals
     - gocognit
     - godot
@@ -291,6 +279,17 @@ linters:
     - gomodguard
     - ifshort
     - ireturn
+    - misspell
+    - nilnil
+    - nlreturn
+    - tagliatelle
+    - tenv
+    - testpackage
+    - thelper
+    - typecheck
+    - varcheck
+    - varnamelen
+    - wsl
 
 issues:
   # List of regexps of issue texts to exclude, empty list by default.

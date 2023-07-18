@@ -1,12 +1,10 @@
 name: tests
 on:
   push:
-    branches:
-      - main
   pull_request:
-  workflow_dispatch:
+
 jobs:
-  unit:
+  build:
     env:
       CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
     runs-on: ubuntu-latest
@@ -20,11 +18,24 @@ jobs:
           go-version: 1.19.4
           cache: true
 
+  lint:
+    name: golangci-lint
+    needs:
+      -build
+    steps:
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@v3
+        with:
+          version: v1.53
+          # Optional: The mode to install golangci-lint. It can be 'binary' or 'goinstall'.
+          # install-mode: "goinstall"
+
+  unit:
+    needs:
+      -lint
+    steps:
       - name: Test unit
         run: go test -tags=!integration -race -coverprofile unit.txt -covermode atomic ./...
-
-      - name: Test integration
-        run: go test -tags=integration -race -coverprofile unit.txt -covermode atomic ./...
 
       - name: Upload coverage report to Codecov
         uses: codecov/codecov-action@v3
@@ -32,3 +43,17 @@ jobs:
           file: ./unit.txt
           flags: unit
           name: unit
+
+  integration:
+    needs:
+      -lint
+    steps:
+      - name: Test integration
+        run: go test -tags=integration -race -coverprofile unit.txt -covermode atomic ./...
+
+      - name: Upload coverage report to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          file: ./unit.txt
+          flags: integration
+          name: integration
