@@ -1,11 +1,12 @@
 version: "3.2"
 services:
-  database:
-    container_name: pg_container
+
+  db:
+    container_name: PostgresDB
     image: postgres:15-alpine
-    ports:
-      - "5432:5432"
-    environment:
-      POSTGRES_PASSWORD: "1111"
+    restart: unless-stopped
+    env_file: .env
     volumes:
       - /pg_data:/var/lib/postgresql/data
+    ports: # dev
+      - "${PGPORT}:${PGPORT}"
