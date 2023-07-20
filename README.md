@@ -26,9 +26,9 @@ Each data supports storing text metadata
   - [ ] Logging in
 - [ ] Data sync between devices
 - [ ] Server data storage
-- [ ] Redis for session storage
-- [ ] Postgres for private data
-- [ ] File storage for large files
+  - [ ] Redis for session storage
+  - [ ] Postgres for private data
+  - [ ] File storage for large files
 - [ ] Data encoding on client
 - [ ] gRPC server-client connection
 
