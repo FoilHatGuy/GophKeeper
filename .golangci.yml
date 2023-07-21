@@ -233,7 +233,6 @@ linters:
     - dogsled
     - errcheck
     - errorlint
-    - gci
     - goconst
     - gocritic
     - gocyclo
@@ -271,6 +270,7 @@ linters:
     - exhaustivestruct
     - forbidigo
     - funlen
+    - gci
     - gochecknoglobals
     - gocognit
     - godot
