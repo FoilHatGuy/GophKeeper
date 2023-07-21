@@ -17,6 +17,6 @@ type ServerGRPC struct {
 
 // PingDatabase
 // Ping server+database activity
-//func (s *ServerGRPC) PingDatabase(_ context.Context, _ *pb.Empty) (out *pb.Empty, errRPC error) {
+// func (s *ServerGRPC) PingDatabase(_ context.Context, _ *pb.Empty) (out *pb.Empty, errRPC error) {
 //	return
-//}
+// }
