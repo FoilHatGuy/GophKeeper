@@ -1,1 +1,4 @@
 /additional/
+/.env
+/pg_data/
+/bin/
