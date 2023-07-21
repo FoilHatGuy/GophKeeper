@@ -1,10 +1,8 @@
 package app
 
 import (
-	"context"
 	"fmt"
 
-	pb "gophKeeper/src/pb"
 	"gophKeeper/src/server/cfg"
 )
 
@@ -14,11 +12,11 @@ func RunGRPCServer(_ *cfg.ConfigT) {
 
 // ServerGRPC is a structure containing all required services, as well as embedded server
 type ServerGRPC struct {
-	pb.UnimplementedGophKeeperServer
+	// pb.UnimplementedGophKeeperServer
 }
 
 // PingDatabase
 // Ping server+database activity
-func (s *ServerGRPC) PingDatabase(_ context.Context, _ *pb.Empty) (out *pb.Empty, errRPC error) {
-	return
-}
+//func (s *ServerGRPC) PingDatabase(_ context.Context, _ *pb.Empty) (out *pb.Empty, errRPC error) {
+//	return
+//}
