@@ -4,11 +4,9 @@ import (
 	"bufio"
 	"fmt"
 	"os"
-
-	"gophKeeper/src/client/cfg"
 )
 
-func MainLoop(_ *cfg.ConfigT) {
+func MainLoop() {
 	fmt.Println()
 	scanner := bufio.NewScanner(os.Stdin)
 	for scanner.Scan() {
