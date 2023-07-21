@@ -1,7 +1,7 @@
 name: Git Version
 
 on:
-  push:
+  pull_request:
 
 jobs:
   version:

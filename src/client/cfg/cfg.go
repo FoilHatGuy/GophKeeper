@@ -11,6 +11,20 @@ import (
 	_ "github.com/sakirsensoy/genv/dotenv/autoload" // import for automatic loading of .env config
 )
 
+var (
+	configPath        string
+	keyRSAPath        string
+	serverAddressHTTP string
+	serverAddressGRPC string
+)
+
+func init() {
+	flag.StringVar(&configPath, "c", "", "path to JSON config. If not specified, ignores json option")
+	flag.StringVar(&keyRSAPath, "k", "", "path to RSA key")
+	flag.StringVar(&serverAddressHTTP, "a", "", "server's HTTP address")
+	flag.StringVar(&serverAddressGRPC, "g", "", "server's GRPC address")
+}
+
 // ConfigOption
 // Various options that can be used in New() to set up configs
 type ConfigOption func(*ConfigT) *ConfigT
@@ -19,10 +33,7 @@ type ConfigOption func(*ConfigT) *ConfigT
 // Accepts config creation options from package.
 // Returns the basic config with default values of ConfigT.
 func New(opts ...ConfigOption) *ConfigT {
-	cfg := &ConfigT{
-		Server: &ServerT{},
-		Data:   &DataStorageT{},
-	}
+	cfg := &ConfigT{}
 
 	if !flag.Parsed() {
 		flag.Parse()
@@ -39,8 +50,24 @@ func New(opts ...ConfigOption) *ConfigT {
 // Initializes default values of type ConfigT
 func FromDefaults() ConfigOption {
 	return func(c *ConfigT) *ConfigT {
-		defaults.SetDefaults(c.Server)
-		defaults.SetDefaults(c.Data)
+		defaults.SetDefaults(c)
+		return c
+	}
+}
+
+// FromFlags
+// Initializes default values of type ConfigT
+func FromFlags() ConfigOption {
+	return func(c *ConfigT) *ConfigT {
+		if keyRSAPath != "" {
+			c.RSAPath = keyRSAPath
+		}
+		if serverAddressHTTP != "" {
+			c.ServerAddressHTTP = serverAddressHTTP
+		}
+		if serverAddressGRPC != "" {
+			c.ServerAddressGRPC = serverAddressGRPC
+		}
 		return c
 	}
 }
@@ -49,9 +76,15 @@ func FromDefaults() ConfigOption {
 // Overwrites existing values with values from environment (if present)
 func FromJSON() ConfigOption {
 	return func(c *ConfigT) *ConfigT {
-		configPath := genv.Key("CONFIG").String()
 		if configPath == "" {
-			return c
+			configPath = genv.Key("GKEEPER_CONFIG").String()
+			if configPath == "" {
+				configPath = "./GophKeeperConfig.json"
+				err := os.Setenv("GKEEPER_CONFIG", configPath)
+				if err != nil {
+					return c
+				}
+			}
 		}
 		data, err := os.ReadFile(configPath)
 		if err != nil {
@@ -66,28 +99,5 @@ func FromJSON() ConfigOption {
 		}
 
 		return &c2
-	}
-}
-
-// FromEnv
-// Overwrites existing values with values from environment (if present)
-func FromEnv() ConfigOption {
-	return func(c *ConfigT) *ConfigT {
-		c = &ConfigT{
-			Server: &ServerT{
-				AddressHTTP:  genv.Key("SERVER_ADDRESS").Default(c.Server.AddressHTTP).String(),
-				AddressGRPC:  genv.Key("SERVER_ADDRESS_GRPC").Default(c.Server.AddressGRPC).String(),
-				HTTPS:        genv.Key("HTTPS").Default(c.Server.HTTPS).Bool(),
-				LoggingLevel: genv.Key("LOGGING_LEVEL").Default(c.Server.AddressGRPC).String(),
-			},
-			Data: &DataStorageT{
-				FileSavePath:  genv.Key("FILE_SAVE_PATH").Default(c.Data.RedisPassword).String(),
-				PostgesDSN:    genv.Key("POSTGES_DSN").Default(c.Data.FileSavePath).String(),
-				RedisURL:      genv.Key("REDIS_URL").Default(c.Data.PostgesDSN).String(),
-				RedisPassword: genv.Key("REDIS_PASSWORD").Default(c.Data.RedisURL).String(),
-			},
-		}
-
-		return c
 	}
 }
