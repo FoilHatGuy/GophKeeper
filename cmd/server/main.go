@@ -45,6 +45,6 @@ func main() {
 	log.Infof("buildCommit\t= %q\n", buildCommit)
 	log.Debug("Wow, server is running!")
 
-	app.RunHTTPServer(config)
+	// app.RunHTTPServer(config)
 	app.RunGRPCServer(config)
 }

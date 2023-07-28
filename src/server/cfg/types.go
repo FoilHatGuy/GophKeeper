@@ -21,8 +21,6 @@ type ServerT struct {
 // DatabaseDSN contains string used for connection to Postgres and Redis.
 // Can be accessed via a structure of type ConfigT
 type DataStorageT struct {
-	FileSavePath  string `default:"./fileData" json:"file_save_path"`
-	PostgesDSN    string `default:"" json:"postges_dsn"`
-	RedisURL      string `default:"redis:6379" json:"redis_url"`
-	RedisPassword string `default:"" json:"redis_password"`
+	FileSavePath string `default:"./fileData" json:"file_save_path"`
+	PostgesDSN   string `default:"" json:"postges_dsn"`
 }
