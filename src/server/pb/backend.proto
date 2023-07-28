@@ -1,18 +1,9 @@
 syntax = "proto3";
 
-package internal.server.pb;
+package base;
 option go_package = ".";
 
-message Empty_DTO{}
-
-message LoginPassPair{
-  string Login = 1;
-  string Password = 2;
-}
-
-message SessionID_DTO{
-  string SID = 1;
-}
+message Empty{}
 
 // Category types
 enum Category {
@@ -22,7 +13,7 @@ enum Category {
   CATEGORY_FILE = 3;
 }
 
-message GetCategoryInfo_DTO{
+message CategoryType_DTO{
   Category Category = 1;
 }
 
@@ -45,13 +36,10 @@ message SecureData_DTO{
   string Metadata = 2;
 }
 
-
 service GophKeeper {
-  rpc Ping (Empty_DTO) returns (Empty_DTO) {} // ping server availability
+  rpc Ping (Empty) returns (Empty) {} // ping server availability
 
-  rpc Login (LoginPassPair) returns (SessionID_DTO) {}
-  rpc KickOtherSession (LoginPassPair) returns (SessionID_DTO) {}
-  rpc Register (LoginPassPair) returns (SessionID_DTO) {}
+  rpc GetCategoryHead (CategoryType_DTO) returns (CategoryHead_DTO) {}
 
   rpc StoreLoginPassword (SecureData_DTO) returns (DataID_DTO) {}
   rpc LoadLoginPassword (DataID_DTO) returns (SecureData_DTO) {}
@@ -64,4 +52,20 @@ service GophKeeper {
 
 //  rpc StoreCreditCard (SecureData_DTO) returns (DataID_DTO) {}
 //  rpc LoadCreditCard (DataID_DTO) returns (SecureData_DTO) {}
+}
+
+
+
+message LoginPassPair{
+  string Login = 1;
+  string Password = 2;
+}
+
+message SessionID_DTO{
+  string SID = 1;
+}
+service Auth {
+  rpc Login (LoginPassPair) returns (SessionID_DTO) {}
+  rpc KickOtherSession (LoginPassPair) returns (SessionID_DTO) {}
+  rpc Register (LoginPassPair) returns (SessionID_DTO) {}
 }

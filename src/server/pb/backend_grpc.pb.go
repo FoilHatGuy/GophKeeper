@@ -22,10 +22,8 @@ const _ = grpc.SupportPackageIsVersion7
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type GophKeeperClient interface {
-	Ping(ctx context.Context, in *Empty_DTO, opts ...grpc.CallOption) (*Empty_DTO, error)
-	Login(ctx context.Context, in *LoginPassPair, opts ...grpc.CallOption) (*SessionID_DTO, error)
-	KickOtherSession(ctx context.Context, in *LoginPassPair, opts ...grpc.CallOption) (*SessionID_DTO, error)
-	Register(ctx context.Context, in *LoginPassPair, opts ...grpc.CallOption) (*SessionID_DTO, error)
+	Ping(ctx context.Context, in *Empty, opts ...grpc.CallOption) (*Empty, error)
+	GetCategoryHead(ctx context.Context, in *CategoryType_DTO, opts ...grpc.CallOption) (*CategoryHead_DTO, error)
 	StoreLoginPassword(ctx context.Context, in *SecureData_DTO, opts ...grpc.CallOption) (*DataID_DTO, error)
 	LoadLoginPassword(ctx context.Context, in *DataID_DTO, opts ...grpc.CallOption) (*SecureData_DTO, error)
 }
@@ -38,36 +36,18 @@ func NewGophKeeperClient(cc grpc.ClientConnInterface) GophKeeperClient {
 	return &gophKeeperClient{cc}
 }
 
-func (c *gophKeeperClient) Ping(ctx context.Context, in *Empty_DTO, opts ...grpc.CallOption) (*Empty_DTO, error) {
-	out := new(Empty_DTO)
-	err := c.cc.Invoke(ctx, "/internal.server.pb.GophKeeper/Ping", in, out, opts...)
+func (c *gophKeeperClient) Ping(ctx context.Context, in *Empty, opts ...grpc.CallOption) (*Empty, error) {
+	out := new(Empty)
+	err := c.cc.Invoke(ctx, "/base.GophKeeper/Ping", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *gophKeeperClient) Login(ctx context.Context, in *LoginPassPair, opts ...grpc.CallOption) (*SessionID_DTO, error) {
-	out := new(SessionID_DTO)
-	err := c.cc.Invoke(ctx, "/internal.server.pb.GophKeeper/Login", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *gophKeeperClient) KickOtherSession(ctx context.Context, in *LoginPassPair, opts ...grpc.CallOption) (*SessionID_DTO, error) {
-	out := new(SessionID_DTO)
-	err := c.cc.Invoke(ctx, "/internal.server.pb.GophKeeper/KickOtherSession", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *gophKeeperClient) Register(ctx context.Context, in *LoginPassPair, opts ...grpc.CallOption) (*SessionID_DTO, error) {
-	out := new(SessionID_DTO)
-	err := c.cc.Invoke(ctx, "/internal.server.pb.GophKeeper/Register", in, out, opts...)
+func (c *gophKeeperClient) GetCategoryHead(ctx context.Context, in *CategoryType_DTO, opts ...grpc.CallOption) (*CategoryHead_DTO, error) {
+	out := new(CategoryHead_DTO)
+	err := c.cc.Invoke(ctx, "/base.GophKeeper/GetCategoryHead", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -76,7 +56,7 @@ func (c *gophKeeperClient) Register(ctx context.Context, in *LoginPassPair, opts
 
 func (c *gophKeeperClient) StoreLoginPassword(ctx context.Context, in *SecureData_DTO, opts ...grpc.CallOption) (*DataID_DTO, error) {
 	out := new(DataID_DTO)
-	err := c.cc.Invoke(ctx, "/internal.server.pb.GophKeeper/StoreLoginPassword", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/base.GophKeeper/StoreLoginPassword", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -85,7 +65,7 @@ func (c *gophKeeperClient) StoreLoginPassword(ctx context.Context, in *SecureDat
 
 func (c *gophKeeperClient) LoadLoginPassword(ctx context.Context, in *DataID_DTO, opts ...grpc.CallOption) (*SecureData_DTO, error) {
 	out := new(SecureData_DTO)
-	err := c.cc.Invoke(ctx, "/internal.server.pb.GophKeeper/LoadLoginPassword", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/base.GophKeeper/LoadLoginPassword", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -96,10 +76,8 @@ func (c *gophKeeperClient) LoadLoginPassword(ctx context.Context, in *DataID_DTO
 // All implementations must embed UnimplementedGophKeeperServer
 // for forward compatibility
 type GophKeeperServer interface {
-	Ping(context.Context, *Empty_DTO) (*Empty_DTO, error)
-	Login(context.Context, *LoginPassPair) (*SessionID_DTO, error)
-	KickOtherSession(context.Context, *LoginPassPair) (*SessionID_DTO, error)
-	Register(context.Context, *LoginPassPair) (*SessionID_DTO, error)
+	Ping(context.Context, *Empty) (*Empty, error)
+	GetCategoryHead(context.Context, *CategoryType_DTO) (*CategoryHead_DTO, error)
 	StoreLoginPassword(context.Context, *SecureData_DTO) (*DataID_DTO, error)
 	LoadLoginPassword(context.Context, *DataID_DTO) (*SecureData_DTO, error)
 	mustEmbedUnimplementedGophKeeperServer()
@@ -109,17 +87,11 @@ type GophKeeperServer interface {
 type UnimplementedGophKeeperServer struct {
 }
 
-func (UnimplementedGophKeeperServer) Ping(context.Context, *Empty_DTO) (*Empty_DTO, error) {
+func (UnimplementedGophKeeperServer) Ping(context.Context, *Empty) (*Empty, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Ping not implemented")
 }
-func (UnimplementedGophKeeperServer) Login(context.Context, *LoginPassPair) (*SessionID_DTO, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method Login not implemented")
-}
-func (UnimplementedGophKeeperServer) KickOtherSession(context.Context, *LoginPassPair) (*SessionID_DTO, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method KickOtherSession not implemented")
-}
-func (UnimplementedGophKeeperServer) Register(context.Context, *LoginPassPair) (*SessionID_DTO, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method Register not implemented")
+func (UnimplementedGophKeeperServer) GetCategoryHead(context.Context, *CategoryType_DTO) (*CategoryHead_DTO, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetCategoryHead not implemented")
 }
 func (UnimplementedGophKeeperServer) StoreLoginPassword(context.Context, *SecureData_DTO) (*DataID_DTO, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method StoreLoginPassword not implemented")
@@ -141,7 +113,7 @@ func RegisterGophKeeperServer(s grpc.ServiceRegistrar, srv GophKeeperServer) {
 }
 
 func _GophKeeper_Ping_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(Empty_DTO)
+	in := new(Empty)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -150,64 +122,28 @@ func _GophKeeper_Ping_Handler(srv interface{}, ctx context.Context, dec func(int
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/internal.server.pb.GophKeeper/Ping",
+		FullMethod: "/base.GophKeeper/Ping",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(GophKeeperServer).Ping(ctx, req.(*Empty_DTO))
+		return srv.(GophKeeperServer).Ping(ctx, req.(*Empty))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _GophKeeper_Login_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(LoginPassPair)
+func _GophKeeper_GetCategoryHead_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CategoryType_DTO)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(GophKeeperServer).Login(ctx, in)
+		return srv.(GophKeeperServer).GetCategoryHead(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/internal.server.pb.GophKeeper/Login",
+		FullMethod: "/base.GophKeeper/GetCategoryHead",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(GophKeeperServer).Login(ctx, req.(*LoginPassPair))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _GophKeeper_KickOtherSession_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(LoginPassPair)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(GophKeeperServer).KickOtherSession(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/internal.server.pb.GophKeeper/KickOtherSession",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(GophKeeperServer).KickOtherSession(ctx, req.(*LoginPassPair))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _GophKeeper_Register_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(LoginPassPair)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(GophKeeperServer).Register(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/internal.server.pb.GophKeeper/Register",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(GophKeeperServer).Register(ctx, req.(*LoginPassPair))
+		return srv.(GophKeeperServer).GetCategoryHead(ctx, req.(*CategoryType_DTO))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -222,7 +158,7 @@ func _GophKeeper_StoreLoginPassword_Handler(srv interface{}, ctx context.Context
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/internal.server.pb.GophKeeper/StoreLoginPassword",
+		FullMethod: "/base.GophKeeper/StoreLoginPassword",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(GophKeeperServer).StoreLoginPassword(ctx, req.(*SecureData_DTO))
@@ -240,7 +176,7 @@ func _GophKeeper_LoadLoginPassword_Handler(srv interface{}, ctx context.Context,
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/internal.server.pb.GophKeeper/LoadLoginPassword",
+		FullMethod: "/base.GophKeeper/LoadLoginPassword",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(GophKeeperServer).LoadLoginPassword(ctx, req.(*DataID_DTO))
@@ -252,7 +188,7 @@ func _GophKeeper_LoadLoginPassword_Handler(srv interface{}, ctx context.Context,
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
 var GophKeeper_ServiceDesc = grpc.ServiceDesc{
-	ServiceName: "internal.server.pb.GophKeeper",
+	ServiceName: "base.GophKeeper",
 	HandlerType: (*GophKeeperServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
@@ -260,16 +196,8 @@ var GophKeeper_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _GophKeeper_Ping_Handler,
 		},
 		{
-			MethodName: "Login",
-			Handler:    _GophKeeper_Login_Handler,
-		},
-		{
-			MethodName: "KickOtherSession",
-			Handler:    _GophKeeper_KickOtherSession_Handler,
-		},
-		{
-			MethodName: "Register",
-			Handler:    _GophKeeper_Register_Handler,
+			MethodName: "GetCategoryHead",
+			Handler:    _GophKeeper_GetCategoryHead_Handler,
 		},
 		{
 			MethodName: "StoreLoginPassword",
@@ -278,6 +206,164 @@ var GophKeeper_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "LoadLoginPassword",
 			Handler:    _GophKeeper_LoadLoginPassword_Handler,
+		},
+	},
+	Streams:  []grpc.StreamDesc{},
+	Metadata: "backend.proto",
+}
+
+// AuthClient is the client API for Auth service.
+//
+// For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
+type AuthClient interface {
+	Login(ctx context.Context, in *LoginPassPair, opts ...grpc.CallOption) (*SessionID_DTO, error)
+	KickOtherSession(ctx context.Context, in *LoginPassPair, opts ...grpc.CallOption) (*SessionID_DTO, error)
+	Register(ctx context.Context, in *LoginPassPair, opts ...grpc.CallOption) (*SessionID_DTO, error)
+}
+
+type authClient struct {
+	cc grpc.ClientConnInterface
+}
+
+func NewAuthClient(cc grpc.ClientConnInterface) AuthClient {
+	return &authClient{cc}
+}
+
+func (c *authClient) Login(ctx context.Context, in *LoginPassPair, opts ...grpc.CallOption) (*SessionID_DTO, error) {
+	out := new(SessionID_DTO)
+	err := c.cc.Invoke(ctx, "/base.Auth/Login", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *authClient) KickOtherSession(ctx context.Context, in *LoginPassPair, opts ...grpc.CallOption) (*SessionID_DTO, error) {
+	out := new(SessionID_DTO)
+	err := c.cc.Invoke(ctx, "/base.Auth/KickOtherSession", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *authClient) Register(ctx context.Context, in *LoginPassPair, opts ...grpc.CallOption) (*SessionID_DTO, error) {
+	out := new(SessionID_DTO)
+	err := c.cc.Invoke(ctx, "/base.Auth/Register", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+// AuthServer is the server API for Auth service.
+// All implementations must embed UnimplementedAuthServer
+// for forward compatibility
+type AuthServer interface {
+	Login(context.Context, *LoginPassPair) (*SessionID_DTO, error)
+	KickOtherSession(context.Context, *LoginPassPair) (*SessionID_DTO, error)
+	Register(context.Context, *LoginPassPair) (*SessionID_DTO, error)
+	mustEmbedUnimplementedAuthServer()
+}
+
+// UnimplementedAuthServer must be embedded to have forward compatible implementations.
+type UnimplementedAuthServer struct {
+}
+
+func (UnimplementedAuthServer) Login(context.Context, *LoginPassPair) (*SessionID_DTO, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Login not implemented")
+}
+func (UnimplementedAuthServer) KickOtherSession(context.Context, *LoginPassPair) (*SessionID_DTO, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method KickOtherSession not implemented")
+}
+func (UnimplementedAuthServer) Register(context.Context, *LoginPassPair) (*SessionID_DTO, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Register not implemented")
+}
+func (UnimplementedAuthServer) mustEmbedUnimplementedAuthServer() {}
+
+// UnsafeAuthServer may be embedded to opt out of forward compatibility for this service.
+// Use of this interface is not recommended, as added methods to AuthServer will
+// result in compilation errors.
+type UnsafeAuthServer interface {
+	mustEmbedUnimplementedAuthServer()
+}
+
+func RegisterAuthServer(s grpc.ServiceRegistrar, srv AuthServer) {
+	s.RegisterService(&Auth_ServiceDesc, srv)
+}
+
+func _Auth_Login_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(LoginPassPair)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthServer).Login(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/base.Auth/Login",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthServer).Login(ctx, req.(*LoginPassPair))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Auth_KickOtherSession_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(LoginPassPair)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthServer).KickOtherSession(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/base.Auth/KickOtherSession",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthServer).KickOtherSession(ctx, req.(*LoginPassPair))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Auth_Register_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(LoginPassPair)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthServer).Register(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/base.Auth/Register",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthServer).Register(ctx, req.(*LoginPassPair))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+// Auth_ServiceDesc is the grpc.ServiceDesc for Auth service.
+// It's only intended for direct use with grpc.RegisterService,
+// and not to be introspected or modified (even as a copy)
+var Auth_ServiceDesc = grpc.ServiceDesc{
+	ServiceName: "base.Auth",
+	HandlerType: (*AuthServer)(nil),
+	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "Login",
+			Handler:    _Auth_Login_Handler,
+		},
+		{
+			MethodName: "KickOtherSession",
+			Handler:    _Auth_KickOtherSession_Handler,
+		},
+		{
+			MethodName: "Register",
+			Handler:    _Auth_Register_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
