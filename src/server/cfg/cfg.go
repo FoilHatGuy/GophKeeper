@@ -81,10 +81,8 @@ func FromEnv() ConfigOption {
 				LoggingLevel: genv.Key("LOGGING_LEVEL").Default(c.Server.AddressGRPC).String(),
 			},
 			Data: &DataStorageT{
-				FileSavePath:  genv.Key("FILE_SAVE_PATH").Default(c.Data.RedisPassword).String(),
-				PostgesDSN:    genv.Key("POSTGES_DSN").Default(c.Data.FileSavePath).String(),
-				RedisURL:      genv.Key("REDIS_URL").Default(c.Data.PostgesDSN).String(),
-				RedisPassword: genv.Key("REDIS_PASSWORD").Default(c.Data.RedisURL).String(),
+				FileSavePath: genv.Key("FILE_SAVE_PATH").Default(c.Data.PostgesDSN).String(),
+				PostgesDSN:   genv.Key("POSTGES_DSN").Default(c.Data.FileSavePath).String(),
 			},
 		}
 
