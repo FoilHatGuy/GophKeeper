@@ -15,6 +15,7 @@ type ServerT struct {
 	AddressGRPC  string `default:"localhost:9999" json:"address_grpc"`
 	HTTPS        bool   `default:"false" json:"enable_https"`
 	LoggingLevel string `default:"Debug" json:"logging_level"` // exactly like in logrus
+	SessionLife  int    `default:"60*60" json:"session_life"`  // in seconds
 }
 
 // DataStorageT stores Data storage related configuration.
