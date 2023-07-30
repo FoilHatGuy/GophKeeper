@@ -75,14 +75,14 @@ func FromEnv() ConfigOption {
 	return func(c *ConfigT) *ConfigT {
 		c = &ConfigT{
 			Server: &ServerT{
-				AddressHTTP:  genv.Key("SERVER_ADDRESS").Default(c.Server.AddressHTTP).String(),
-				AddressGRPC:  genv.Key("SERVER_ADDRESS_GRPC").Default(c.Server.AddressGRPC).String(),
+				AddressHTTP:  os.ExpandEnv(genv.Key("SERVER_ADDRESS").Default(c.Server.AddressHTTP).String()),
+				AddressGRPC:  os.ExpandEnv(genv.Key("SERVER_ADDRESS_GRPC").Default(c.Server.AddressGRPC).String()),
 				HTTPS:        genv.Key("HTTPS").Default(c.Server.HTTPS).Bool(),
-				LoggingLevel: genv.Key("LOGGING_LEVEL").Default(c.Server.AddressGRPC).String(),
+				LoggingLevel: os.ExpandEnv(genv.Key("LOGGING_LEVEL").Default(c.Server.AddressGRPC).String()),
 			},
 			Data: &DataStorageT{
-				FileSavePath: genv.Key("FILE_SAVE_PATH").Default(c.Data.PostgesDSN).String(),
-				PostgesDSN:   genv.Key("POSTGES_DSN").Default(c.Data.FileSavePath).String(),
+				FileSavePath: os.ExpandEnv(genv.Key("FILE_SAVE_PATH").Default(c.Data.PostgesDSN).String()),
+				PostgesDSN:   os.ExpandEnv(genv.Key("POSTGES_DSN").Default(c.Data.FileSavePath).String()),
 			},
 		}
 

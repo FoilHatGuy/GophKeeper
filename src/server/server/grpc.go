@@ -29,7 +29,8 @@ const (
 )
 
 func RunGRPCServer(config *cfg.ConfigT) {
-	db := database.New()
+	ctx := context.Background()
+	db := database.New(ctx, config)
 	auth := AuthGRPC{db: db}
 	backend := ServerGRPC{db: db}
 
@@ -57,7 +58,7 @@ type AuthGRPC struct {
 
 // Login
 // Ping server+database activity
-func (s *AuthGRPC) Login(ctx context.Context, in *pb.LoginPassPair) (out *pb.SessionID_DTO, errRPC error) {
+func (s *AuthGRPC) Login(ctx context.Context, in *pb.Credentials) (out *pb.SessionID_DTO, errRPC error) {
 	// get all data
 	login := in.GetLogin()
 	pass := in.GetPassword()
@@ -87,7 +88,7 @@ func (s *AuthGRPC) Login(ctx context.Context, in *pb.LoginPassPair) (out *pb.Ses
 
 // KickOtherSession
 // Ping server+database activity
-func (s *AuthGRPC) KickOtherSession(ctx context.Context, in *pb.LoginPassPair) (out *pb.SessionID_DTO, errRPC error) {
+func (s *AuthGRPC) KickOtherSession(ctx context.Context, in *pb.Credentials) (out *pb.SessionID_DTO, errRPC error) {
 	// get all data
 	login := in.GetLogin()
 	pass := in.GetPassword()
@@ -114,7 +115,7 @@ func (s *AuthGRPC) KickOtherSession(ctx context.Context, in *pb.LoginPassPair) (
 
 // Register
 // Ping server+database activity
-func (s *AuthGRPC) Register(ctx context.Context, in *pb.LoginPassPair) (out *pb.SessionID_DTO, errRPC error) {
+func (s *AuthGRPC) Register(ctx context.Context, in *pb.Credentials) (out *pb.SessionID_DTO, errRPC error) {
 	login := in.GetLogin()
 	password := in.GetPassword()
 	hashed, err := passwords.HashPassword(password)
@@ -187,16 +188,16 @@ func (s *ServerGRPC) GetCategoryHead(
 	category := in.GetCategory()
 
 	switch category {
-	case pb.Category_CATEGORY_PASS:
-		head, err = s.db.GetLPPHead(ctx)
+	case pb.Category_CATEGORY_CRED:
+		head, err = s.db.GetCredentialsHead(ctx)
 
 	case pb.Category_CATEGORY_TEXT:
 		//nolint:godox
-		head, err = s.db.GetLPPHead(ctx) // todo: change to correct category
+		head, err = s.db.GetCredentialsHead(ctx) // todo: change to correct category
 	case pb.Category_CATEGORY_CARD:
-		head, err = s.db.GetLPPHead(ctx)
+		head, err = s.db.GetCredentialsHead(ctx)
 	case pb.Category_CATEGORY_FILE:
-		head, err = s.db.GetLPPHead(ctx)
+		head, err = s.db.GetCredentialsHead(ctx)
 	}
 
 	if err != nil && !errors.Is(err, database.ErrNotFound) {
@@ -218,14 +219,14 @@ func (s *ServerGRPC) GetCategoryHead(
 	return out, nil
 }
 
-// StoreLoginPassword
+// StoreCredentials
 // Ping server+database activity
-func (s *ServerGRPC) StoreLoginPassword(ctx context.Context, in *pb.SecureData_DTO) (out *pb.DataID_DTO, errRPC error) {
+func (s *ServerGRPC) StoreCredentials(ctx context.Context, in *pb.SecureData_DTO) (out *pb.DataID_DTO, errRPC error) {
 	data := in.GetData()
 	meta := in.GetMetadata()
 	dataID := uuid.NewString()
 
-	err := s.db.AddLPP(ctx, dataID, meta, data)
+	err := s.db.AddCredentials(ctx, dataID, meta, data)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "login or password incorrect")
 	}
@@ -236,12 +237,12 @@ func (s *ServerGRPC) StoreLoginPassword(ctx context.Context, in *pb.SecureData_D
 	return
 }
 
-// LoadLoginPassword
+// LoadCredentials
 // Ping server+database activity
-func (s *ServerGRPC) LoadLoginPassword(ctx context.Context, in *pb.DataID_DTO) (out *pb.SecureData_DTO, errRPC error) {
+func (s *ServerGRPC) LoadCredentials(ctx context.Context, in *pb.DataID_DTO) (out *pb.SecureData_DTO, errRPC error) {
 	id := in.GetID()
 
-	meta, data, err := s.db.GetLPP(ctx, id)
+	meta, data, err := s.db.GetCredentials(ctx, id)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "database error")
 	}

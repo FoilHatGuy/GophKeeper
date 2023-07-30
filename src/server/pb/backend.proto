@@ -7,7 +7,7 @@ message Empty{}
 
 // Category types
 enum Category {
-  CATEGORY_PASS = 0;
+  CATEGORY_CRED = 0;
   CATEGORY_TEXT = 1;
   CATEGORY_CARD = 2;
   CATEGORY_FILE = 3;
@@ -41,8 +41,8 @@ service GophKeeper {
 
   rpc GetCategoryHead (CategoryType_DTO) returns (CategoryHead_DTO) {}
 
-  rpc StoreLoginPassword (SecureData_DTO) returns (DataID_DTO) {}
-  rpc LoadLoginPassword (DataID_DTO) returns (SecureData_DTO) {}
+  rpc StoreCredentials (SecureData_DTO) returns (DataID_DTO) {}
+  rpc LoadCredentials (DataID_DTO) returns (SecureData_DTO) {}
 
 //  rpc StoreTextData (SecureData_DTO) returns (DataID_DTO) {}
 //  rpc LoadTextData (DataID_DTO) returns (SecureData_DTO) {}
@@ -55,8 +55,7 @@ service GophKeeper {
 }
 
 
-
-message LoginPassPair{
+message Credentials{
   string Login = 1;
   string Password = 2;
 }
@@ -65,7 +64,7 @@ message SessionID_DTO{
   string SID = 1;
 }
 service Auth {
-  rpc Login (LoginPassPair) returns (SessionID_DTO) {}
-  rpc KickOtherSession (LoginPassPair) returns (SessionID_DTO) {}
-  rpc Register (LoginPassPair) returns (SessionID_DTO) {}
+  rpc Login (Credentials) returns (SessionID_DTO) {}
+  rpc KickOtherSession (Credentials) returns (SessionID_DTO) {}
+  rpc Register (Credentials) returns (SessionID_DTO) {}
 }
