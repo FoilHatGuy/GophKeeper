@@ -32,8 +32,6 @@ jobs:
     env:
       CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
-    e
-
     runs-on: ubuntu-latest
     strategy:
       matrix:
