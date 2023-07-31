@@ -46,5 +46,5 @@ func main() {
 	log.Debug("Wow, server is running!")
 
 	// app.RunHTTPServer(config)
-	app.RunGRPCServer(config)
+	app.RunGRPCServer(config, log.StandardLogger())
 }
