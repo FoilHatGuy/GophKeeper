@@ -50,6 +50,9 @@ jobs:
           go-version: 1.20.6
           cache: true
 
+      - name: Use sample .env file
+        run: pwd && cp ./sample.env ./.env && cat ./.env
+
       - name: Test unit
         run: go test -tags=${{ matrix.scope }} -race -coverprofile ${{ matrix.scope }}.txt -covermode atomic ./...
 
