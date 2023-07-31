@@ -218,7 +218,7 @@ var GophKeeper_ServiceDesc = grpc.ServiceDesc{
 type AuthClient interface {
 	Login(ctx context.Context, in *Credentials, opts ...grpc.CallOption) (*SessionID_DTO, error)
 	KickOtherSession(ctx context.Context, in *Credentials, opts ...grpc.CallOption) (*SessionID_DTO, error)
-	Register(ctx context.Context, in *Credentials, opts ...grpc.CallOption) (*SessionID_DTO, error)
+	Register(ctx context.Context, in *Credentials, opts ...grpc.CallOption) (*Empty, error)
 }
 
 type authClient struct {
@@ -247,8 +247,8 @@ func (c *authClient) KickOtherSession(ctx context.Context, in *Credentials, opts
 	return out, nil
 }
 
-func (c *authClient) Register(ctx context.Context, in *Credentials, opts ...grpc.CallOption) (*SessionID_DTO, error) {
-	out := new(SessionID_DTO)
+func (c *authClient) Register(ctx context.Context, in *Credentials, opts ...grpc.CallOption) (*Empty, error) {
+	out := new(Empty)
 	err := c.cc.Invoke(ctx, "/base.Auth/Register", in, out, opts...)
 	if err != nil {
 		return nil, err
@@ -262,7 +262,7 @@ func (c *authClient) Register(ctx context.Context, in *Credentials, opts ...grpc
 type AuthServer interface {
 	Login(context.Context, *Credentials) (*SessionID_DTO, error)
 	KickOtherSession(context.Context, *Credentials) (*SessionID_DTO, error)
-	Register(context.Context, *Credentials) (*SessionID_DTO, error)
+	Register(context.Context, *Credentials) (*Empty, error)
 	mustEmbedUnimplementedAuthServer()
 }
 
@@ -276,7 +276,7 @@ func (UnimplementedAuthServer) Login(context.Context, *Credentials) (*SessionID_
 func (UnimplementedAuthServer) KickOtherSession(context.Context, *Credentials) (*SessionID_DTO, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method KickOtherSession not implemented")
 }
-func (UnimplementedAuthServer) Register(context.Context, *Credentials) (*SessionID_DTO, error) {
+func (UnimplementedAuthServer) Register(context.Context, *Credentials) (*Empty, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Register not implemented")
 }
 func (UnimplementedAuthServer) mustEmbedUnimplementedAuthServer() {}

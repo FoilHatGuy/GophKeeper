@@ -66,5 +66,5 @@ message SessionID_DTO{
 service Auth {
   rpc Login (Credentials) returns (SessionID_DTO) {}
   rpc KickOtherSession (Credentials) returns (SessionID_DTO) {}
-  rpc Register (Credentials) returns (SessionID_DTO) {}
+  rpc Register (Credentials) returns (Empty) {}
 }

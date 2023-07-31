@@ -23,7 +23,7 @@ type Session struct {
 type SecureCredential struct {
 	gorm.Model
 	ID       string
-	Data     string
+	Data     []byte
 	Metadata string
 	UID      string
 	User     User `gorm:"ForeignKey:UID;references:ID"`
@@ -32,7 +32,7 @@ type SecureCredential struct {
 type SecureText struct {
 	gorm.Model
 	ID       string
-	Data     string
+	Data     []byte
 	Metadata string
 	UID      string
 	User     User `gorm:"ForeignKey:UID;references:ID"`
@@ -41,7 +41,7 @@ type SecureText struct {
 type SecureCard struct {
 	gorm.Model
 	ID       string
-	Data     string
+	Data     []byte
 	Metadata string
 	UID      string
 	User     User `gorm:"ForeignKey:UID;references:ID"`
