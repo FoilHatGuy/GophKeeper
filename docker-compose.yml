@@ -7,6 +7,6 @@ services:
     restart: unless-stopped
     env_file: .env
     volumes:
-      - ./pg_data:/var/lib/postgresql/data
+      - /usr/local/pg_data:/var/lib/postgresql/data
     ports: # dev
       - "${PGPORT}:${PGPORT}"

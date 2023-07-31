@@ -3,12 +3,14 @@ package database
 import (
 	"context"
 	"errors"
-	"gophKeeper/src/server/cfg"
+	"fmt"
 	"time"
 
 	"github.com/sirupsen/logrus"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
+
+	"gophKeeper/src/server/cfg"
 )
 
 var (
@@ -69,7 +71,7 @@ type storageWrapper struct {
 func (s *storageWrapper) Initialise(ctx context.Context, config *cfg.ConfigT) (err error) {
 	db, err := gorm.Open(postgres.Open(config.Data.PostgesDSN), &gorm.Config{})
 	if err != nil {
-		return err
+		return fmt.Errorf("open connection: %w", err)
 	}
 	err = db.WithContext(ctx).AutoMigrate(
 		&Session{},
@@ -80,7 +82,7 @@ func (s *storageWrapper) Initialise(ctx context.Context, config *cfg.ConfigT) (e
 		&SecureFile{},
 	)
 	if err != nil {
-		return err
+		return fmt.Errorf("migration failed: %w", err)
 	}
 	s.PSQL = db
 	s.conf = config
@@ -100,7 +102,7 @@ func (s *storageWrapper) AddUser(ctx context.Context, uid, login, password strin
 // GetPassword operates with database using GORM
 func (s *storageWrapper) GetPassword(ctx context.Context, login string) (password string, err error) {
 	err = s.PSQL.WithContext(ctx).Model(&User{}).Where("login = ?", login).Pluck("password", &password).Error
-	return
+	return password, fmt.Errorf("user pw get: %w", err)
 }
 
 // AddSession operates with database using GORM
@@ -110,7 +112,7 @@ func (s *storageWrapper) AddSession(ctx context.Context, uid, sid string) (err e
 		UID:     uid,
 		Expires: time.Now().Add(time.Duration(s.conf.Server.SessionLife) * time.Second),
 	}).Error
-	return
+	return fmt.Errorf("session add: %w", err)
 }
 
 // UpdateSession operates with database using GORM
@@ -120,7 +122,7 @@ func (s *storageWrapper) UpdateSession(ctx context.Context, uid, sid string) (er
 		UID:     uid,
 		Expires: time.Now().Add(time.Duration(s.conf.Server.SessionLife) * time.Second),
 	}).Error
-	return
+	return fmt.Errorf("session update: %w", err)
 }
 
 // RefreshSession operates with database using GORM
@@ -128,7 +130,7 @@ func (s *storageWrapper) RefreshSession(ctx context.Context, sid string) (uid st
 	currentSession := &Session{}
 	err = s.PSQL.WithContext(ctx).Model(&Session{}).Where("id =", sid).Take(&currentSession).Error
 	if err != nil {
-		return currentSession.UID, false, err
+		return currentSession.UID, false, fmt.Errorf("session refresh: %w", err)
 	}
 	if currentSession.Expires.Before(time.Now()) {
 		return currentSession.UID, false, ErrSessionStale
@@ -136,7 +138,7 @@ func (s *storageWrapper) RefreshSession(ctx context.Context, sid string) (uid st
 	currentSession.Expires = time.Now().Add(time.Duration(s.conf.Server.SessionLife) * time.Second)
 	err = s.PSQL.WithContext(ctx).Save(currentSession).Error
 	logrus.Debug("PSQL refreshed session", sid)
-	return currentSession.UID, true, nil
+	return currentSession.UID, true, fmt.Errorf("session refresh: %w", err)
 }
 
 // credentials section
@@ -146,7 +148,7 @@ func (s *storageWrapper) GetCredentialsHead(ctx context.Context, uid string) (he
 	op := s.PSQL.Model(&User{}).WithContext(ctx).Where("uid =", uid)
 	err = op.Error
 	logrus.Debug("PSQL loaded data for login pass pair")
-	return CategoryHead{}, nil
+	return CategoryHead{}, fmt.Errorf("credentials head get: %w", err)
 }
 
 // AddCredentials operates with database using GORM
@@ -158,7 +160,7 @@ func (s *storageWrapper) AddCredentials(ctx context.Context, uid, dataID, metada
 		UID:      uid,
 	}).Error
 	logrus.Debug("PSQL added data for login pass pair", dataID)
-	return
+	return fmt.Errorf("credentials add: %w", err)
 }
 
 // GetCredentials operates with database using GORM
@@ -172,9 +174,10 @@ func (s *storageWrapper) GetCredentials(
 		Where("uid =", uid).
 		Where("id =", dataID).
 		Pluck("data", &data).
+		Pluck("metadata", &metadata).
 		Error
 	logrus.Debug("PSQL loaded data for login pass pair", dataID)
-	return "meta", []byte("password"), nil
+	return metadata, data, fmt.Errorf("credentials get: %w", err)
 }
 
 // Text section
@@ -184,7 +187,7 @@ func (s *storageWrapper) GetTextHead(ctx context.Context, uid string) (head Cate
 	op := s.PSQL.Model(&User{}).WithContext(ctx).Where("uid =", uid)
 	err = op.Error
 	logrus.Debug("PSQL loaded data for login pass pair")
-	return CategoryHead{}, nil
+	return CategoryHead{}, fmt.Errorf("text head get: %w", err)
 }
 
 // AddText operates with database using GORM
@@ -196,7 +199,7 @@ func (s *storageWrapper) AddText(ctx context.Context, uid, dataID, metadata stri
 		UID:      uid,
 	}).Error
 	logrus.Debug("PSQL added data for login pass pair", dataID)
-	return
+	return fmt.Errorf("text add: %w", err)
 }
 
 // GetText operates with database using GORM
@@ -210,9 +213,10 @@ func (s *storageWrapper) GetText(
 		Where("uid =", uid).
 		Where("id =", dataID).
 		Pluck("data", &data).
+		Pluck("metadata", &metadata).
 		Error
 	logrus.Debug("PSQL loaded data for login pass pair", dataID)
-	return "meta", []byte("password"), nil
+	return metadata, data, fmt.Errorf("text get: %w", err)
 }
 
 // Card section
@@ -222,7 +226,7 @@ func (s *storageWrapper) GetCardHead(ctx context.Context, uid string) (head Cate
 	op := s.PSQL.Model(&User{}).WithContext(ctx).Where("uid =", uid)
 	err = op.Error
 	logrus.Debug("PSQL loaded data for login pass pair")
-	return CategoryHead{}, nil
+	return CategoryHead{}, fmt.Errorf("card head get: %w", err)
 }
 
 // AddCard operates with database using GORM
@@ -234,7 +238,7 @@ func (s *storageWrapper) AddCard(ctx context.Context, uid, dataID, metadata stri
 		UID:      uid,
 	}).Error
 	logrus.Debug("PSQL added data for login pass pair", dataID)
-	return
+	return fmt.Errorf("card add: %w", err)
 }
 
 // GetCard operates with database using GORM
@@ -248,7 +252,8 @@ func (s *storageWrapper) GetCard(
 		Where("uid =", uid).
 		Where("id =", dataID).
 		Pluck("data", &data).
+		Pluck("metadata", &metadata).
 		Error
 	logrus.Debug("PSQL loaded data for login pass pair", dataID)
-	return "meta", []byte("password"), nil
+	return metadata, data, fmt.Errorf("card get: %w", err)
 }

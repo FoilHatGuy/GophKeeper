@@ -4,12 +4,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	grpc_ctxtags "github.com/grpc-ecosystem/go-grpc-middleware/tags"
 	"net"
 	"strings"
 
 	"github.com/google/uuid"
-	"github.com/grpc-ecosystem/go-grpc-middleware/logging/logrus"
+	grpc_logrus "github.com/grpc-ecosystem/go-grpc-middleware/logging/logrus"
+	grpc_ctxtags "github.com/grpc-ecosystem/go-grpc-middleware/tags"
 	log "github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -224,7 +224,7 @@ func (s *ServerGRPC) GetCategoryHead(
 		head, err = s.db.GetTextHead(ctx, uid)
 	case pb.Category_CATEGORY_CARD:
 		head, err = s.db.GetCardHead(ctx, uid)
-		//case pb.Category_CATEGORY_FILE: // todo: change to correct category
+		// case pb.Category_CATEGORY_FILE: // todo: change to correct category
 		//	head, err = s.db.GetFileHead(ctx, uid)
 	}
 
