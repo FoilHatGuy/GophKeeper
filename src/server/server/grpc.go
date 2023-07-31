@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"gophKeeper/src/pb"
 	"net"
 	"strings"
 
@@ -18,6 +17,7 @@ import (
 	"google.golang.org/grpc/reflection"
 	"google.golang.org/grpc/status"
 
+	__ "gophKeeper/src/pb"
 	"gophKeeper/src/server/cfg"
 	"gophKeeper/src/server/database"
 	"gophKeeper/src/server/passwords"
