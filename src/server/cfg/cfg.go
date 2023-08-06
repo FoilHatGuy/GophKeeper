@@ -21,7 +21,9 @@ type ConfigOption func(*ConfigT) *ConfigT
 func New(opts ...ConfigOption) *ConfigT {
 	cfg := &ConfigT{
 		Server: &ServerT{},
-		Data:   &DataStorageT{},
+		Data: &DataStorageT{
+			PostgesDSN: "",
+		},
 	}
 
 	if !flag.Parsed() {
@@ -79,11 +81,11 @@ func FromEnv() ConfigOption {
 				AddressGRPC:  os.ExpandEnv(genv.Key("SERVER_ADDRESS_GRPC").Default(c.Server.AddressGRPC).String()),
 				HTTPS:        genv.Key("HTTPS").Default(c.Server.HTTPS).Bool(),
 				LoggingLevel: os.ExpandEnv(genv.Key("LOGGING_LEVEL").Default(c.Server.AddressGRPC).String()),
-				SessionLife:  genv.Key("SESSION_LIFE").Default(c.Server.AddressGRPC).Int(),
+				SessionLife:  genv.Key("SESSION_LIFE").Default(c.Server.SessionLife).Int(),
 			},
 			Data: &DataStorageT{
-				FileSavePath: os.ExpandEnv(genv.Key("FILE_SAVE_PATH").Default(c.Data.PostgesDSN).String()),
-				PostgesDSN:   os.ExpandEnv(genv.Key("POSTGES_DSN").Default(c.Data.FileSavePath).String()),
+				FileSavePath: os.ExpandEnv(genv.Key("FILE_SAVE_PATH").Default(c.Data.FileSavePath).String()),
+				PostgesDSN:   os.ExpandEnv(genv.Key("POSTGES_DSN").Default(c.Data.PostgesDSN).String()),
 			},
 		}
 
