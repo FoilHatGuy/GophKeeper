@@ -4,8 +4,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"gorm.io/gorm/clause"
 	"time"
+
+	"gorm.io/gorm/clause"
 
 	"github.com/sirupsen/logrus"
 	"gorm.io/driver/postgres"
@@ -167,7 +168,7 @@ func (s *storageWrapper) RefreshSession(ctx context.Context, sid string) (uid st
 	if currentSession.Expires.Before(time.Now()) {
 		return currentSession.UID, false, ErrSessionStale
 	}
-	return currentSession.UID, true, nil
+	return currentSession.UID, ok, nil
 }
 
 // credentials section

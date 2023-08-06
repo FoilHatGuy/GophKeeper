@@ -4,11 +4,12 @@ package database
 
 import (
 	"context"
+	"os"
+	"testing"
+
 	"github.com/google/uuid"
 	"github.com/sakirsensoy/genv/dotenv"
 	"gophKeeper/src/server/cfg"
-	"os"
-	"testing"
 
 	"github.com/stretchr/testify/suite"
 )
