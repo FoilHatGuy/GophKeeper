@@ -32,7 +32,7 @@ func (s *DatabaseIntegrationTestSuite) SetupSuite() {
 	)
 	config.Data.PostgesDSN = os.ExpandEnv("host=localhost user=${POSTGRES_USER} " +
 		"password=${POSTGRES_PASSWORD} dbname=postgres port=${PGPORT} sslmode=disable")
-	config.Server.SessionLife = 1
+	config.Server.SessionLife = 200
 	s.ctx = context.Background()
 	s.wrapper = New(s.ctx, config)
 }

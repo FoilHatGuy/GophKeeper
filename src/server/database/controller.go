@@ -163,9 +163,9 @@ func (s *storageWrapper) RefreshSession(ctx context.Context, sid string) (uid st
 	ok = op.RowsAffected > 0
 	err = op.Error
 	if err != nil {
-		return currentSession.UID, true, fmt.Errorf("session refresh: %w", err)
+		return currentSession.UID, false, fmt.Errorf("session refresh: %w", err)
 	}
-	if currentSession.Expires.Before(time.Now()) {
+	if currentSession.Expires.After(time.Now()) {
 		return currentSession.UID, false, ErrSessionStale
 	}
 	return currentSession.UID, ok, nil
