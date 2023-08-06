@@ -4,6 +4,7 @@ go 1.20
 
 require (
 	github.com/google/uuid v1.3.0
+	github.com/grpc-ecosystem/go-grpc-middleware v1.4.0
 	github.com/mcuadros/go-defaults v1.2.0
 	github.com/sakirsensoy/genv v1.0.1
 	github.com/sirupsen/logrus v1.9.3
@@ -18,7 +19,6 @@ require (
 require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/golang/protobuf v1.5.3 // indirect
-	github.com/grpc-ecosystem/go-grpc-middleware v1.4.0 // indirect
 	github.com/jackc/pgpassfile v1.0.0 // indirect
 	github.com/jackc/pgservicefile v0.0.0-20221227161230-091c0ba34f0a // indirect
 	github.com/jackc/pgx/v5 v5.3.1 // indirect
