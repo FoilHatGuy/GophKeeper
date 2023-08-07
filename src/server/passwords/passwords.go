@@ -19,6 +19,11 @@ const (
 	argonSaltLen uint32 = 16
 )
 
+var (
+	ErrArgonVersion = errors.New("wrong argon version")
+	ErrHashInvalid  = errors.New("invalid hash")
+)
+
 // HashPassword hashes password and returns argon2id hash
 func HashPassword(password string) (string, error) {
 	salt := make([]byte, argonSaltLen)
@@ -39,7 +44,7 @@ func HashPassword(password string) (string, error) {
 func ComparePasswordHash(expectedPassword, providedPassword string) (bool, error) {
 	vals := strings.Split(expectedPassword, "$")
 	if len(vals) != 6 {
-		return false, errors.New("invalid hash")
+		return false, ErrHashInvalid
 	}
 
 	var version int
@@ -48,7 +53,7 @@ func ComparePasswordHash(expectedPassword, providedPassword string) (bool, error
 		return false, fmt.Errorf("password verification: %w", err)
 	}
 	if version != argon2.Version {
-		return false, errors.New("wrong argon version")
+		return false, ErrArgonVersion
 	}
 
 	var mem, iter uint32
