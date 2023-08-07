@@ -5,14 +5,23 @@ import (
 	"errors"
 	"fmt"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/metadata"
+	"google.golang.org/grpc/status"
 	"gophKeeper/src/client/cfg"
 	pb "gophKeeper/src/pb"
+	"strings"
+)
+
+var (
+	ErrAlreadyLoggedIn = errors.New("user already logged in")
 )
 
 func New(config *cfg.ConfigT) (*GRPCClient, func() error) {
-	var client *GRPCClient
+	client := &GRPCClient{
+		config: config,
+	}
 	conn, err := grpc.Dial(
 		config.ServerAddressGRPC,
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
@@ -22,11 +31,8 @@ func New(config *cfg.ConfigT) (*GRPCClient, func() error) {
 		panic("connection refused")
 	}
 
-	client = &GRPCClient{
-		config: config,
-		auth:   pb.NewAuthClient(conn),
-		keep:   pb.NewGophKeeperClient(conn),
-	}
+	client.auth = pb.NewAuthClient(conn)
+	client.keep = pb.NewGophKeeperClient(conn)
 	return client, conn.Close
 }
 
@@ -44,18 +50,26 @@ func (c *GRPCClient) Authenticate(
 	cc *grpc.ClientConn,
 	invoker grpc.UnaryInvoker,
 	opts ...grpc.CallOption,
-) error {
+) (err error) {
+	if strings.Contains(strings.ToLower(method), "base.auth") {
+		err = invoker(ctx, method, req, reply, cc, opts...)
+		if err != nil {
+			return fmt.Errorf("authenticate middleware bypass: %w", err)
+		}
+		return nil
+	}
 	metadata.AppendToOutgoingContext(ctx, "sid", c.sessionID)
-	err := invoker(ctx, method, req, reply, cc, opts...)
+	err = invoker(ctx, method, req, reply, cc, opts...)
 	if err != nil {
-		return err
+		return fmt.Errorf("authenticate middleware error: %w", err)
 	}
 	md, ok := metadata.FromIncomingContext(ctx)
 	if !ok {
 		return errors.New("no metadata")
 	}
 	c.sessionID = md.Get("sid")[0]
-	return err
+
+	return nil
 }
 
 func (c *GRPCClient) Login(ctx context.Context, login, password string) error {
@@ -64,6 +78,11 @@ func (c *GRPCClient) Login(ctx context.Context, login, password string) error {
 		Password: password,
 	})
 	if err != nil {
+		if e, ok := status.FromError(err); ok {
+			if e.Code() == codes.AlreadyExists {
+				return ErrAlreadyLoggedIn
+			}
+		}
 		return err
 	}
 	c.sessionID = resp.GetSID()
@@ -88,8 +107,6 @@ func (c *GRPCClient) Register(ctx context.Context, login, password string) error
 	if err != nil {
 		return err
 	}
-
-	err = c.Login(ctx, login, password)
 	return err
 
 }

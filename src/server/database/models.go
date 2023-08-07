@@ -9,7 +9,7 @@ import (
 type User struct {
 	gorm.Model
 	ID       string `gorm:"primaryKey"`
-	Login    string
+	Login    string `gorm:"uniqueIndex"`
 	Password string
 }
 

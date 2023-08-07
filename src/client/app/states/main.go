@@ -1,13 +1,17 @@
 package states
 
 import (
+	"bufio"
+	"context"
 	"errors"
+	"fmt"
 	"gophKeeper/src/client/cfg"
+	GRPCClient "gophKeeper/src/client/grpcClient"
+	"os"
 )
 
 const (
 	stateLogin = iota
-	stateRegister
 	stateMenu
 	stateCreds
 	stateCard
@@ -21,27 +25,51 @@ var (
 )
 
 type state interface {
-	Execute(command string) (resultState state, err error)
+	Execute(ctx context.Context, command string) (resultState state, err error)
 }
 type Application struct {
-	state  state
-	states map[int]state
+	state     state
+	cat       map[int]state
+	config    *cfg.ConfigT
+	grpc      *GRPCClient.GRPCClient
+	closeFunc func() error
 }
 
 func New(config *cfg.ConfigT) *Application {
-	app := &Application{}
+	app := &Application{
+		config: config,
+	}
 	catalogue := map[int]state{
-		stateLogin:    &stateLoginType{app, config},
-		stateRegister: &stateRegisterType{app, config},
-		stateMenu:     &stateMenuType{app, config},
-		stateCreds:    &stateCredsType{app, config},
-		stateCard:     &stateCardType{app, config},
-		stateText:     &stateTextType{app, config},
-		stateFile:     &stateFileType{app, config},
+		stateLogin: &stateLoginType{app, config},
+		stateMenu:  &stateMenuType{app, config},
+		stateCreds: &stateCredsType{app, config},
+		stateCard:  &stateCardType{app, config},
+		stateText:  &stateTextType{app, config},
+		stateFile:  &stateFileType{app, config},
 	}
 	app.state = catalogue[stateLogin]
-	app.states = catalogue
+	app.cat = catalogue
+	app.grpc, app.closeFunc = GRPCClient.New(config)
 	return app
+}
+
+func (a *Application) Run() {
+	scanner := bufio.NewScanner(os.Stdin)
+	fmt.Println("app is ready to accept commands!")
+	for {
+		fmt.Printf("%T: ", a.state)
+		scanner.Scan()
+		ctx := context.Background()
+		err := a.Execute(ctx, scanner.Text())
+		if errors.Is(err, ErrExit) {
+			break
+		}
+		if err != nil {
+			fmt.Println(err)
+		}
+	}
+	err := a.closeFunc()
+	panic(err)
 }
 
 func includes(s []string, e string) bool {
@@ -53,27 +81,29 @@ func includes(s []string, e string) bool {
 	return false
 }
 
-func (s *Application) Execute(command string) error {
+func (a *Application) Execute(ctx context.Context, command string) error {
 	if includes(commandExit, command) {
 		return ErrExit
 	}
 
-	newState, err := s.state.Execute(command)
+	newState, err := a.state.Execute(ctx, command)
 	if errors.Is(err, ErrUnrecognizedCommand) {
-		_, err := s.state.Execute(commandHelp[0])
+		_, err := a.state.Execute(ctx, commandHelp[0])
 		if err != nil {
 			return err
 		}
-	} else if err != nil {
+	}
+	a.state = newState
+	if err != nil {
 		return err
 	}
-	s.state = newState
 	return nil
 }
 
 var (
 	commandHelp        = []string{"help", "h"}
 	commandLogin       = []string{"login", "l"}
+	commandRegister    = []string{"register", "reg", "r"}
 	commandExit        = []string{"exit", "x"}
 	commandBack        = []string{"back", "b"}
 	commandCredentials = []string{"credentials", "cred", "cr"}

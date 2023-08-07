@@ -85,7 +85,7 @@ func (s *AuthGRPC) Login(ctx context.Context, in *pb.Credentials) (out *pb.Sessi
 	// get all data
 	login := in.GetLogin()
 	pass := in.GetPassword()
-	passStored, err := s.db.GetPassword(ctx, login)
+	uid, passStored, err := s.db.GetUserData(ctx, login)
 	if errors.Is(err, database.ErrNotFound) {
 		return nil, status.Errorf(codes.Unauthenticated, "login or password incorrect")
 	}
@@ -98,7 +98,7 @@ func (s *AuthGRPC) Login(ctx context.Context, in *pb.Credentials) (out *pb.Sessi
 
 	// if ok, add session
 	sid := uuid.NewString()
-	err = s.db.AddSession(ctx, login, sid)
+	err = s.db.AddSession(ctx, uid, sid)
 	switch {
 	case errors.Is(err, database.ErrConflict):
 		return nil, status.Errorf(codes.AlreadyExists, "already logged in")
@@ -115,7 +115,7 @@ func (s *AuthGRPC) KickOtherSession(ctx context.Context, in *pb.Credentials) (ou
 	// get all data
 	login := in.GetLogin()
 	pass := in.GetPassword()
-	passStored, err := s.db.GetPassword(ctx, login)
+	uid, passStored, err := s.db.GetUserData(ctx, login)
 	if errors.Is(err, database.ErrNotFound) {
 		return nil, status.Errorf(codes.Unauthenticated, "login or password incorrect")
 	}
@@ -128,7 +128,7 @@ func (s *AuthGRPC) KickOtherSession(ctx context.Context, in *pb.Credentials) (ou
 
 	// if ok, add session
 	sid := uuid.NewString()
-	err = s.db.UpdateSession(ctx, login, sid)
+	err = s.db.UpdateSession(ctx, uid, sid)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "login or password incorrect")
 	}
