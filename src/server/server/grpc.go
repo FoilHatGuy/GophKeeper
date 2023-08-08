@@ -8,8 +8,8 @@ import (
 	"strings"
 
 	"github.com/google/uuid"
-	grpc_logrus "github.com/grpc-ecosystem/go-grpc-middleware/logging/logrus"
-	grpc_ctxtags "github.com/grpc-ecosystem/go-grpc-middleware/tags"
+	grpclogrus "github.com/grpc-ecosystem/go-grpc-middleware/logging/logrus"
+	grpcctxtags "github.com/grpc-ecosystem/go-grpc-middleware/tags"
 	log "github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -37,26 +37,26 @@ func RunGRPCServer(config *cfg.ConfigT, logger *log.Logger) {
 	backend := ServerGRPC{db: db}
 
 	logrusEntry := log.NewEntry(logger)
-	opts := []grpc_logrus.Option{
-		grpc_logrus.WithLevels(func(code codes.Code) log.Level {
+	opts := []grpclogrus.Option{
+		grpclogrus.WithLevels(func(code codes.Code) log.Level {
 			if code == codes.OK {
 				return log.InfoLevel
 			}
 			return log.ErrorLevel
 		}),
 	}
-	grpc_logrus.ReplaceGrpcLogger(logrusEntry)
+	grpclogrus.ReplaceGrpcLogger(logrusEntry)
 
 	server := grpc.NewServer(
 		grpc.ChainUnaryInterceptor(
-			grpc_ctxtags.UnaryServerInterceptor(grpc_ctxtags.WithFieldExtractor(grpc_ctxtags.CodeGenRequestFieldExtractor)),
-			grpc_logrus.UnaryServerInterceptor(logrusEntry, opts...),
+			grpcctxtags.UnaryServerInterceptor(grpcctxtags.WithFieldExtractor(grpcctxtags.CodeGenRequestFieldExtractor)),
+			grpclogrus.UnaryServerInterceptor(logrusEntry, opts...),
 			backend.Authenticate,
 		),
 		//nolint:godox
 		grpc.ChainStreamInterceptor( // todo: add stream auth
-			grpc_ctxtags.StreamServerInterceptor(grpc_ctxtags.WithFieldExtractor(grpc_ctxtags.CodeGenRequestFieldExtractor)),
-			grpc_logrus.StreamServerInterceptor(logrusEntry, opts...),
+			grpcctxtags.StreamServerInterceptor(grpcctxtags.WithFieldExtractor(grpcctxtags.CodeGenRequestFieldExtractor)),
+			grpclogrus.StreamServerInterceptor(logrusEntry, opts...),
 		),
 	)
 	reflection.Register(server)

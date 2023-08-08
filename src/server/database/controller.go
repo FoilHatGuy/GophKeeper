@@ -7,6 +7,8 @@ import (
 	"strings"
 	"time"
 
+	"gorm.io/gorm/clause"
+
 	"github.com/sirupsen/logrus"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
@@ -57,7 +59,7 @@ func New(ctx context.Context, config *cfg.ConfigT) (ctrl StorageController) {
 	ctrl = &storageWrapper{}
 	err := ctrl.Initialise(ctx, config)
 	if err != nil {
-		logrus.Fatalf("database was not initialised: %v", err)
+		logrus.Panicf("database was not initialised: %v", err)
 		return nil
 	}
 	return ctrl
@@ -97,7 +99,10 @@ func (s *storageWrapper) AddUser(ctx context.Context, uid, login, password strin
 		Login:    login,
 		Password: password,
 	}).Error
-	return
+	if err != nil {
+		return fmt.Errorf("user adding failed: %w", err)
+	}
+	return nil
 }
 
 // GetUserData operates with database using GORM
@@ -143,12 +148,29 @@ func (s *storageWrapper) UpdateSession(ctx context.Context, uid, sid string) (er
 
 // RefreshSession operates with database using GORM
 func (s *storageWrapper) RefreshSession(ctx context.Context, sid string) (uid string, ok bool, err error) {
-	currentSession := &Session{}
-	err = s.PSQL.WithContext(ctx).Model(&Session{}).Where("id =", sid).Take(&currentSession).Error
+	var currentSession Session
+	var expTime time.Time
+
+	op := s.PSQL.WithContext(ctx).
+		Model(&currentSession).
+		Clauses(clause.Returning{
+			Columns: []clause.Column{
+				{Name: "uid"},
+				{Name: "expires"},
+			},
+		}).
+		Where("id = ?", sid).
+		Pluck("expires", &expTime).
+		Where("expires < ?", time.Now()).
+		Updates(Session{
+			Expires: time.Now().Add(time.Duration(s.conf.Server.SessionLife) * time.Second),
+		})
+	ok = op.RowsAffected > 0
+	err = op.Error
 	if err != nil {
 		return currentSession.UID, false, fmt.Errorf("session refresh: %w", err)
 	}
-	if currentSession.Expires.Before(time.Now()) {
+	if currentSession.Expires.After(time.Now()) {
 		return currentSession.UID, false, ErrSessionStale
 	}
 	currentSession.Expires = time.Now().Add(time.Duration(s.conf.Server.SessionLife) * time.Second)
@@ -164,7 +186,7 @@ func (s *storageWrapper) RefreshSession(ctx context.Context, sid string) (uid st
 
 // GetCredentialsHead operates with database using GORM
 func (s *storageWrapper) GetCredentialsHead(ctx context.Context, uid string) (head CategoryHead, err error) {
-	op := s.PSQL.Model(&User{}).WithContext(ctx).Where("uid =", uid)
+	op := s.PSQL.Model(&User{}).WithContext(ctx).Where("uid = ?", uid)
 	err = op.Error
 	logrus.Debug("PSQL loaded data for login pass pair")
 	if err != nil {
@@ -196,8 +218,8 @@ func (s *storageWrapper) GetCredentials(
 	err = s.PSQL.
 		WithContext(ctx).
 		Model(&SecureCredential{}).
-		Where("uid =", uid).
-		Where("id =", dataID).
+		Where("uid = ?", uid).
+		Where("id = ?", dataID).
 		Pluck("data", &data).
 		Pluck("metadata", &metadata).
 		Error
@@ -212,7 +234,7 @@ func (s *storageWrapper) GetCredentials(
 
 // GetTextHead operates with database using GORM
 func (s *storageWrapper) GetTextHead(ctx context.Context, uid string) (head CategoryHead, err error) {
-	op := s.PSQL.Model(&User{}).WithContext(ctx).Where("uid =", uid)
+	op := s.PSQL.Model(&User{}).WithContext(ctx).Where("uid = ?", uid)
 	err = op.Error
 	logrus.Debug("PSQL loaded data for login pass pair")
 	if err != nil {
@@ -244,8 +266,8 @@ func (s *storageWrapper) GetText(
 	err = s.PSQL.
 		WithContext(ctx).
 		Model(&SecureText{}).
-		Where("uid =", uid).
-		Where("id =", dataID).
+		Where("uid = ?", uid).
+		Where("id = ?", dataID).
 		Pluck("data", &data).
 		Pluck("metadata", &metadata).
 		Error
@@ -260,7 +282,7 @@ func (s *storageWrapper) GetText(
 
 // GetCardHead operates with database using GORM
 func (s *storageWrapper) GetCardHead(ctx context.Context, uid string) (head CategoryHead, err error) {
-	op := s.PSQL.Model(&User{}).WithContext(ctx).Where("uid =", uid)
+	op := s.PSQL.Model(&User{}).WithContext(ctx).Where("uid = ?", uid)
 	err = op.Error
 	logrus.Debug("PSQL loaded data for login pass pair")
 	if err != nil {
@@ -292,8 +314,8 @@ func (s *storageWrapper) GetCard(
 	err = s.PSQL.
 		WithContext(ctx).
 		Model(&SecureCard{}).
-		Where("uid =", uid).
-		Where("id =", dataID).
+		Where("uid = ?", uid).
+		Where("id = ?", dataID).
 		Pluck("data", &data).
 		Pluck("metadata", &metadata).
 		Error
