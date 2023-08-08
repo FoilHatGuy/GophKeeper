@@ -4,18 +4,17 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"net"
-	"strings"
-
 	"github.com/google/uuid"
-	grpclogrus "github.com/grpc-ecosystem/go-grpc-middleware/logging/logrus"
-	grpcctxtags "github.com/grpc-ecosystem/go-grpc-middleware/tags"
+	grpc_logrus "github.com/grpc-ecosystem/go-grpc-middleware/logging/logrus"
+	grpc_ctxtags "github.com/grpc-ecosystem/go-grpc-middleware/tags"
 	log "github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/reflection"
 	"google.golang.org/grpc/status"
+	"net"
+	"strings"
 
 	pb "gophKeeper/src/pb"
 	"gophKeeper/src/server/cfg"
@@ -37,26 +36,27 @@ func RunGRPCServer(config *cfg.ConfigT, logger *log.Logger) {
 	backend := ServerGRPC{db: db}
 
 	logrusEntry := log.NewEntry(logger)
-	opts := []grpclogrus.Option{
-		grpclogrus.WithLevels(func(code codes.Code) log.Level {
+	opts := []grpc_logrus.Option{
+		grpc_logrus.WithLevels(func(code codes.Code) log.Level {
 			if code == codes.OK {
 				return log.InfoLevel
 			}
 			return log.ErrorLevel
 		}),
 	}
-	grpclogrus.ReplaceGrpcLogger(logrusEntry)
+	grpc_logrus.ReplaceGrpcLogger(logrusEntry)
 
 	server := grpc.NewServer(
 		grpc.ChainUnaryInterceptor(
-			grpcctxtags.UnaryServerInterceptor(grpcctxtags.WithFieldExtractor(grpcctxtags.CodeGenRequestFieldExtractor)),
-			grpclogrus.UnaryServerInterceptor(logrusEntry, opts...),
+			grpc_ctxtags.UnaryServerInterceptor(grpc_ctxtags.WithFieldExtractor(grpc_ctxtags.CodeGenRequestFieldExtractor)),
+			grpc_logrus.UnaryServerInterceptor(logrusEntry, opts...),
 			backend.Authenticate,
+			Async,
 		),
 		//nolint:godox
 		grpc.ChainStreamInterceptor( // todo: add stream auth
-			grpcctxtags.StreamServerInterceptor(grpcctxtags.WithFieldExtractor(grpcctxtags.CodeGenRequestFieldExtractor)),
-			grpclogrus.StreamServerInterceptor(logrusEntry, opts...),
+			grpc_ctxtags.StreamServerInterceptor(grpc_ctxtags.WithFieldExtractor(grpc_ctxtags.CodeGenRequestFieldExtractor)),
+			grpc_logrus.StreamServerInterceptor(logrusEntry, opts...),
 		),
 	)
 	reflection.Register(server)
@@ -159,6 +159,23 @@ func (s *AuthGRPC) Register(ctx context.Context, in *pb.Credentials) (out *pb.Em
 type ServerGRPC struct {
 	pb.UnimplementedGophKeeperServer
 	db database.StorageController
+}
+
+// Async launches each handle as a goroutine to prevent panic from stopping the entire server
+func Async(
+	ctx context.Context,
+	req interface{},
+	_ *grpc.UnaryServerInfo,
+	handler grpc.UnaryHandler,
+) (response interface{}, errRPC error) {
+	c := make(chan bool)
+	go func() {
+		response, errRPC = handler(ctx, req)
+		c <- true
+	}()
+	<-c
+	return
+
 }
 
 // Authenticate manages sid cookies.

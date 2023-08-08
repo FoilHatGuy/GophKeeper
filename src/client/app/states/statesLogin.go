@@ -2,6 +2,7 @@ package states
 
 import (
 	"context"
+	"crypto/sha256"
 	"errors"
 	"fmt"
 	"gophKeeper/src/client/cfg"
@@ -13,6 +14,11 @@ type stateLoginType struct {
 	app    *Application
 	config *cfg.ConfigT
 }
+
+var (
+	commandLogin    = []string{"login", "l"}
+	commandRegister = []string{"register", "reg", "r"}
+)
 
 func (s *stateLoginType) Execute(ctx context.Context, command string) (resultState state, err error) {
 	arguments := strings.Split(command, " ")
@@ -28,7 +34,7 @@ func (s *stateLoginType) Execute(ctx context.Context, command string) (resultSta
 		if len(arguments) != 3 {
 			return s, ErrUnrecognizedCommand
 		}
-		return s.Login(ctx, arguments[1], arguments[2])
+		return s.login(ctx, arguments[1], arguments[2])
 
 	case includes(commandRegister, strings.ToLower(arguments[0])):
 		if len(arguments) != 3 {
@@ -38,7 +44,10 @@ func (s *stateLoginType) Execute(ctx context.Context, command string) (resultSta
 		if err != nil {
 			return s, fmt.Errorf("error occured during Register attempt. details: %w", err)
 		}
-		return s.Login(ctx, arguments[1], arguments[2])
+		return s.login(ctx, arguments[1], arguments[2])
+
+	default:
+		return s, ErrUnrecognizedCommand
 	}
 	if err != nil {
 		return s, err
@@ -46,29 +55,70 @@ func (s *stateLoginType) Execute(ctx context.Context, command string) (resultSta
 	return s, err
 }
 
-func (s *stateLoginType) Login(ctx context.Context, login, password string) (state, error) {
-	err := s.app.grpc.Login(ctx, login, password)
-	if errors.Is(err, GRPCClient.ErrAlreadyLoggedIn) {
-		return s.app.newModal(
-			"This user is already logged in.\n"+
-				"You can kick other device or don't do anything.\n"+
-				"Kick other session? [y/n]",
+func (s *stateLoginType) login(ctx context.Context, login, password string) (state, error) {
 
-			func(c context.Context) (state, error) {
+	modalKick := s.app.newModal(
+		"This user is already logged in.\n"+
+			"You can kick other device or don't do anything.\n"+
+			"Kick other session? [y/n]",
+
+		func(c context.Context, command string) (state, error) {
+			switch command {
+			case "y":
 				err := s.app.grpc.KickOtherSession(c, login, password)
 				if err != nil {
 					return nil, fmt.Errorf("error occured during kicking session. details: %w", err)
 				}
-				return s.app.cat[stateMenu], nil
-			},
+				return s.saveSecret(login, password)
+			case "n":
+				return s.app.cat[stateLogin], nil
+			}
+			return nil, nil
+		},
+	)
 
-			func(c context.Context) (state, error) {
-				return s, nil
-			},
-		), nil
+	err := s.app.grpc.Login(ctx, login, password)
+	if errors.Is(err, GRPCClient.ErrAlreadyLoggedIn) {
+		return modalKick, nil
 	}
 	if err != nil {
 		return s, fmt.Errorf("error occured during Login attempt. details: %w", err)
 	}
+	return s.saveSecret(login, password)
+}
+
+func (s *stateLoginType) saveSecret(login, password string) (outState state, err error) {
+	keyLength := 5
+	modalSecret := s.app.newModal(
+		"Secret key for this user is not saved on the device.\n"+
+			"Please enter a secret which will be used to encode your data:",
+
+		func(c context.Context, command string) (state, error) {
+			if len(command) < keyLength {
+				return nil, fmt.Errorf("please use a key at least %d long", keyLength)
+			}
+			err = s.app.saveSecret(command)
+			if err != nil {
+				return nil, fmt.Errorf("error occured during saving secret. details: %w", err)
+			}
+			return s.app.cat[stateMenu], nil
+		},
+	)
+
+	key := strings.Join([]string{
+		"USER_KEY",
+		login,
+		password,
+	}, ":")
+	arr := sha256.Sum256([]byte(key))
+	s.app.userKey = string(arr[:])
+
+	if s.app.encoder == nil {
+		err = s.app.loadSecret()
+		if err != nil {
+			return modalSecret, nil
+		}
+	}
+
 	return s.app.cat[stateMenu], nil
 }

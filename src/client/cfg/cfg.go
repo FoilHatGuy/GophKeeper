@@ -60,7 +60,7 @@ func FromDefaults() ConfigOption {
 func FromFlags() ConfigOption {
 	return func(c *ConfigT) *ConfigT {
 		if keyRSAPath != "" {
-			c.RSAPath = keyRSAPath
+			c.SecretPath = keyRSAPath
 		}
 		if serverAddressHTTP != "" {
 			c.ServerAddressHTTP = serverAddressHTTP
