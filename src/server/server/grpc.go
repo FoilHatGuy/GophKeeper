@@ -4,6 +4,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net"
+	"strings"
+
 	"github.com/google/uuid"
 	grpc_logrus "github.com/grpc-ecosystem/go-grpc-middleware/logging/logrus"
 	grpc_ctxtags "github.com/grpc-ecosystem/go-grpc-middleware/tags"
@@ -13,8 +16,6 @@ import (
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/reflection"
 	"google.golang.org/grpc/status"
-	"net"
-	"strings"
 
 	pb "gophKeeper/src/pb"
 	"gophKeeper/src/server/cfg"
@@ -48,10 +49,10 @@ func RunGRPCServer(config *cfg.ConfigT, logger *log.Logger) {
 
 	server := grpc.NewServer(
 		grpc.ChainUnaryInterceptor(
+			Async,
 			grpc_ctxtags.UnaryServerInterceptor(grpc_ctxtags.WithFieldExtractor(grpc_ctxtags.CodeGenRequestFieldExtractor)),
 			grpc_logrus.UnaryServerInterceptor(logrusEntry, opts...),
 			backend.Authenticate,
-			Async,
 		),
 		//nolint:godox
 		grpc.ChainStreamInterceptor( // todo: add stream auth
@@ -130,6 +131,7 @@ func (s *AuthGRPC) KickOtherSession(ctx context.Context, in *pb.Credentials) (ou
 	sid := uuid.NewString()
 	err = s.db.UpdateSession(ctx, uid, sid)
 	if err != nil {
+		log.Error(err)
 		return nil, status.Errorf(codes.Internal, "login or password incorrect")
 	}
 	out = &pb.SessionID_DTO{SID: sid}
@@ -143,12 +145,14 @@ func (s *AuthGRPC) Register(ctx context.Context, in *pb.Credentials) (out *pb.Em
 	password := in.GetPassword()
 	hashed, err := passwords.HashPassword(password)
 	if err != nil {
+		log.Error(err)
 		return nil, status.Errorf(codes.Internal, "password is incorrect")
 	}
 
 	uid := uuid.NewString()
 	err = s.db.AddUser(ctx, uid, login, hashed)
 	if err != nil {
+		log.Error(err)
 		return nil, status.Errorf(codes.Internal, "database error")
 	}
 	out = &pb.Empty{}
@@ -175,7 +179,6 @@ func Async(
 	}()
 	<-c
 	return
-
 }
 
 // Authenticate manages sid cookies.
@@ -200,13 +203,15 @@ func (s *ServerGRPC) Authenticate(
 	sid := metaValue[0]
 
 	uid, ok, err := s.db.RefreshSession(ctx, sid)
+	ctx = context.WithValue(ctx, uidMetaKey, uid)
+
 	if err != nil {
-		return nil, status.Errorf(codes.Internal, "while accessing database")
+		log.Error(err)
+		return nil, status.Errorf(codes.Internal, "session refresh failed")
 	}
 	if !ok {
 		return nil, status.Errorf(codes.ResourceExhausted, "session stale")
 	}
-	ctx = context.WithValue(ctx, uidMetaKey, uid)
 	metadata.AppendToOutgoingContext(ctx, sidMetaKey, sid)
 
 	return handler(ctx, req)
@@ -256,7 +261,7 @@ func (s *ServerGRPC) GetCategoryHead(
 
 	for _, el := range head {
 		newInfo = append(newInfo, &pb.DataInfo{
-			DataID:   el.DataID,
+			DataID:   el.ID,
 			Metadata: el.Metadata,
 		})
 	}
@@ -273,12 +278,13 @@ func (s *ServerGRPC) StoreCredentials(ctx context.Context, in *pb.SecureData_DTO
 	meta := in.GetMetadata()
 	dataID := uuid.NewString()
 
-	uidTL := ctx.Value(uidMetaKey)
-	uid := uidTL.(string)
+	uidTypeLess := ctx.Value(uidMetaKey)
+	uid := uidTypeLess.(string)
 
 	err := s.db.AddCredentials(ctx, uid, dataID, meta, data)
 	if err != nil {
-		return nil, status.Errorf(codes.Internal, "login or password incorrect")
+		log.Error(err)
+		return nil, status.Errorf(codes.Internal, "database error")
 	}
 
 	out = &pb.DataID_DTO{
@@ -297,6 +303,7 @@ func (s *ServerGRPC) LoadCredentials(ctx context.Context, in *pb.DataID_DTO) (ou
 
 	meta, data, err := s.db.GetCredentials(ctx, uid, sid)
 	if err != nil {
+		log.Error(err)
 		return nil, status.Errorf(codes.Internal, "database error")
 	}
 	out = &pb.SecureData_DTO{
@@ -320,6 +327,7 @@ func (s *ServerGRPC) StoreText(ctx context.Context, in *pb.SecureData_DTO) (out 
 
 	err := s.db.AddText(ctx, uid, dataID, meta, data)
 	if err != nil {
+		log.Error(err)
 		return nil, status.Errorf(codes.Internal, "login or password incorrect")
 	}
 
@@ -339,6 +347,7 @@ func (s *ServerGRPC) LoadText(ctx context.Context, in *pb.DataID_DTO) (out *pb.S
 
 	meta, data, err := s.db.GetText(ctx, uid, sid)
 	if err != nil {
+		log.Error(err)
 		return nil, status.Errorf(codes.Internal, "database error")
 	}
 	out = &pb.SecureData_DTO{
@@ -362,6 +371,7 @@ func (s *ServerGRPC) StoreCard(ctx context.Context, in *pb.SecureData_DTO) (out 
 
 	err := s.db.AddCard(ctx, uid, dataID, meta, data)
 	if err != nil {
+		log.Error(err)
 		return nil, status.Errorf(codes.Internal, "login or password incorrect")
 	}
 
@@ -381,6 +391,7 @@ func (s *ServerGRPC) LoadCard(ctx context.Context, in *pb.DataID_DTO) (out *pb.S
 
 	meta, data, err := s.db.GetCard(ctx, uid, sid)
 	if err != nil {
+		log.Error(err)
 		return nil, status.Errorf(codes.Internal, "database error")
 	}
 	out = &pb.SecureData_DTO{

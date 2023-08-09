@@ -5,9 +5,10 @@ import (
 	"crypto/sha256"
 	"errors"
 	"fmt"
+	"strings"
+
 	"gophKeeper/src/client/cfg"
 	GRPCClient "gophKeeper/src/client/grpcClient"
-	"strings"
 )
 
 type stateLoginType struct {
@@ -45,18 +46,14 @@ func (s *stateLoginType) Execute(ctx context.Context, command string) (resultSta
 			return s, fmt.Errorf("error occured during Register attempt. details: %w", err)
 		}
 		return s.login(ctx, arguments[1], arguments[2])
-
-	default:
-		return s, ErrUnrecognizedCommand
 	}
 	if err != nil {
-		return s, err
+		return s, fmt.Errorf("login state unrecognized error: %w", err)
 	}
-	return s, err
+	return s, ErrUnrecognizedCommand
 }
 
 func (s *stateLoginType) login(ctx context.Context, login, password string) (state, error) {
-
 	modalKick := s.app.newModal(
 		"This user is already logged in.\n"+
 			"You can kick other device or don't do anything.\n"+
@@ -79,6 +76,7 @@ func (s *stateLoginType) login(ctx context.Context, login, password string) (sta
 
 	err := s.app.grpc.Login(ctx, login, password)
 	if errors.Is(err, GRPCClient.ErrAlreadyLoggedIn) {
+		modalKick.Print()
 		return modalKick, nil
 	}
 	if err != nil {
@@ -116,6 +114,7 @@ func (s *stateLoginType) saveSecret(login, password string) (outState state, err
 	if s.app.encoder == nil {
 		err = s.app.loadSecret()
 		if err != nil {
+			modalSecret.Print()
 			return modalSecret, nil
 		}
 	}

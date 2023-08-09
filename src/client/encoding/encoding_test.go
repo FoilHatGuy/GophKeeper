@@ -2,8 +2,9 @@ package encoding
 
 import (
 	"fmt"
-	"github.com/stretchr/testify/suite"
 	"testing"
+
+	"github.com/stretchr/testify/suite"
 )
 
 type HashTestSuite struct {
@@ -14,11 +15,10 @@ type HashTestSuite struct {
 
 func (s *HashTestSuite) SetupSuite() {
 	s.encoder = New("new secret")
-
 }
 
 func (s *HashTestSuite) TestHash() {
-	in := "password"
+	in := "TestHash"
 	fmt.Printf("input: %q\n", in)
 	result := s.encoder.Encode(in)
 	fmt.Printf("result: % X\n", result)
@@ -29,7 +29,7 @@ func (s *HashTestSuite) TestHash() {
 }
 
 func (s *HashTestSuite) TestWrongDecoder() {
-	in := "password"
+	in := "TestWrongDecoder"
 	fmt.Printf("input: %q\n", in)
 	result := s.encoder.Encode(in)
 	fmt.Printf("result: % x\n", result)

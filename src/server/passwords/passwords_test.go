@@ -2,8 +2,9 @@ package passwords
 
 import (
 	"fmt"
-	"github.com/stretchr/testify/suite"
 	"testing"
+
+	"github.com/stretchr/testify/suite"
 )
 
 type HashTestSuite struct {
@@ -20,7 +21,6 @@ func (s *HashTestSuite) TestHash() {
 	ok, err := ComparePasswordHash(hashed, pw)
 	s.Assert().NoError(err)
 	s.Assert().True(ok)
-
 }
 
 func (s *HashTestSuite) TestWrongPW() {

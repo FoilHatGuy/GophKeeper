@@ -5,10 +5,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"os"
+
 	"gophKeeper/src/client/cfg"
 	"gophKeeper/src/client/encoding"
 	GRPCClient "gophKeeper/src/client/grpcClient"
-	"os"
 )
 
 const (
@@ -33,6 +34,7 @@ type state interface {
 type stateData interface {
 	state
 	Show(ctx context.Context)
+	Fetch(ctx context.Context) (err error)
 }
 type Application struct {
 	state     state
@@ -52,10 +54,10 @@ func New(config *cfg.ConfigT) *Application {
 		stateLogin:  &stateLoginType{app, config},
 		stateMenu:   &stateMenuType{app, config},
 		stateConfig: &stateConfigType{app, config},
-		stateCreds:  &stateCredsType{app, config, nil},
-		//stateCard:   &stateCardType{app, config, nil},
-		//stateText:   &stateTextType{app, config, nil},
-		//stateFile:   &stateFileType{app, config, nil},
+		stateCreds:  &stateCredsType{app: app, config: config, inputField: -1},
+		// stateCard:   &stateCardType{app, config, nil},
+		// stateText:   &stateTextType{app, config, nil},
+		// stateFile:   &stateFileType{app, config, nil},
 	}
 	app.state = catalogue[stateLogin]
 	app.cat = catalogue
@@ -65,12 +67,13 @@ func New(config *cfg.ConfigT) *Application {
 
 func (a *Application) Run() {
 	const colorRed = "\033[0;31m"
+	const colorBlue = "\033[0;34m"
 	const colorNone = "\033[0m"
 
 	scanner := bufio.NewScanner(os.Stdin)
 	fmt.Println("app is ready to accept commands!")
 	for {
-		fmt.Printf("%T: ", a.state)
+		fmt.Printf("%s%T:%s ", colorBlue, a.state, colorNone)
 		scanner.Scan()
 		ctx := context.Background()
 		err := a.Execute(ctx, scanner.Text())
@@ -99,22 +102,31 @@ func (a *Application) Execute(ctx context.Context, command string) error {
 		return ErrExit
 	}
 
+	if includes(commandPing, command) {
+		err := a.grpc.Ping(ctx)
+		if err != nil {
+			return fmt.Errorf("ping unsucessful: %w", err)
+		}
+	}
+
 	newState, err := a.state.Execute(ctx, command)
 	if errors.Is(err, ErrUnrecognizedCommand) {
-		_, err := a.state.Execute(ctx, commandHelp[0])
+		newState, err = a.state.Execute(ctx, commandHelp[0])
 		if err != nil {
-			return err
+			return fmt.Errorf("application error: %w", err)
 		}
 	}
 	a.state = newState
 	if err != nil {
-		return err
+		return fmt.Errorf("application error: %w", err)
 	}
 	return nil
 }
 
-var ErrNoKeyStored = errors.New("no secret found in storage")
-var ErrNoFile = errors.New("no file was detected")
+var (
+	ErrNoKeyStored = errors.New("no secret found in storage")
+	ErrNoFile      = errors.New("no file was detected")
+)
 
 func (a *Application) loadSecret() error {
 	secretDecoder := encoding.New(a.userKey)
@@ -134,13 +146,18 @@ func (a *Application) loadSecret() error {
 			break
 		}
 	}
+	if newKey == "" {
+		return ErrNoKeyStored
+	}
+
 	a.encoder = encoding.New(newKey)
 	return nil
 }
+
 func (a *Application) saveSecret(secret string) error {
 	secretDecoder := encoding.New(a.userKey)
 
-	file, err := os.OpenFile(a.config.SecretPath, os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0644)
+	file, err := os.OpenFile(a.config.SecretPath, os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0o644)
 	if err != nil {
 		return ErrNoFile
 	}
@@ -150,7 +167,7 @@ func (a *Application) saveSecret(secret string) error {
 	_, err2 := file.Write(secretDecoder.Encode(secret))
 
 	if err2 != nil {
-		fmt.Println("Could not write text to example.txt")
+		return errors.New("wile is not writeable")
 	}
 
 	a.encoder = encoding.New(secret)
@@ -158,7 +175,8 @@ func (a *Application) saveSecret(secret string) error {
 }
 
 var (
-	commandHelp = []string{"help", "h"}
+	commandHelp = []string{"help", "?"}
+	commandPing = []string{"ping", "p"}
 	commandExit = []string{"exit", "x"}
 	commandBack = []string{"back", "b"}
 	commandOpen = []string{"open", "o"}

@@ -9,9 +9,9 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/sakirsensoy/genv/dotenv"
-	"gophKeeper/src/server/cfg"
-
 	"github.com/stretchr/testify/suite"
+
+	"gophKeeper/src/server/cfg"
 )
 
 type DatabaseIntegrationTestSuite struct {
@@ -65,7 +65,7 @@ func (s *DatabaseIntegrationTestSuite) TestUsers() {
 	err = s.wrapper.AddUser(s.ctx, uid, login, password)
 	s.Assert().Error(err)
 
-	pw2, err := s.wrapper.GetPassword(s.ctx, login)
+	_, pw2, err := s.wrapper.GetUserData(s.ctx, login)
 	s.Assert().NoError(err)
 	s.Assert().Equal(password, pw2)
 }

@@ -3,8 +3,9 @@ package states
 import (
 	"context"
 	"fmt"
-	"gophKeeper/src/client/cfg"
 	"strings"
+
+	"gophKeeper/src/client/cfg"
 )
 
 type stateConfigType struct {
@@ -12,16 +13,14 @@ type stateConfigType struct {
 	config *cfg.ConfigT
 }
 
-var (
-// commandCred   = []string{"credentials", "cred", "cr"}
-// commandCard   = []string{"card", "c"}
-// commandText   = []string{"text", "t"}
-// commandFile   = []string{"file", "f"}
-// commandConfig = []string{"config", "cfg", "c"}
-)
+//var (
+//commandCred   = []string{"credentials", "cred", "cr"}
+//commandCard   = []string{"card", "c"}
+//commandText   = []string{"text", "t"}
+//commandFile   = []string{"file", "f"}
+//)
 
 func (s *stateConfigType) Execute(ctx context.Context, command string) (resultState state, err error) {
-
 	arguments := strings.Split(command, " ")
 	switch {
 	case includes(commandHelp, strings.ToLower(arguments[0])):

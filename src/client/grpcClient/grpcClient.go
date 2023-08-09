@@ -4,22 +4,22 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
+
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
+
 	"gophKeeper/src/client/cfg"
 	pb "gophKeeper/src/pb"
-	"strings"
 )
 
-var (
-	ErrAlreadyLoggedIn = errors.New("user already logged in")
-)
+var ErrAlreadyLoggedIn = errors.New("user already logged in")
 
-func New(config *cfg.ConfigT) (*GRPCClient, func() error) {
-	client := &GRPCClient{
+func New(config *cfg.ConfigT) (client *GRPCClient, callback func() error) {
+	client = &GRPCClient{
 		config: config,
 	}
 	conn, err := grpc.Dial(
@@ -58,17 +58,16 @@ func (c *GRPCClient) Authenticate(
 		}
 		return nil
 	}
-	metadata.AppendToOutgoingContext(ctx, "sid", c.sessionID)
+	ctx = metadata.AppendToOutgoingContext(ctx, "sid", c.sessionID)
 	err = invoker(ctx, method, req, reply, cc, opts...)
 	if err != nil {
 		return fmt.Errorf("authenticate middleware error: %w", err)
 	}
-	md, ok := metadata.FromIncomingContext(ctx)
-	if !ok {
-		return errors.New("no metadata")
-	}
-	c.sessionID = md.Get("sid")[0]
-
+	//md, ok := metadata.FromIncomingContext(ctx)
+	//if !ok {
+	//	return errors.New("no metadata")
+	//}
+	//c.sessionID = md.Get("sid")[0]
 	return nil
 }
 
@@ -88,6 +87,7 @@ func (c *GRPCClient) Login(ctx context.Context, login, password string) error {
 	c.sessionID = resp.GetSID()
 	return nil
 }
+
 func (c *GRPCClient) KickOtherSession(ctx context.Context, login, password string) error {
 	resp, err := c.auth.KickOtherSession(ctx, &pb.Credentials{
 		Login:    login,
@@ -99,22 +99,24 @@ func (c *GRPCClient) KickOtherSession(ctx context.Context, login, password strin
 	c.sessionID = resp.GetSID()
 	return nil
 }
+
 func (c *GRPCClient) Register(ctx context.Context, login, password string) error {
 	_, err := c.auth.Register(ctx, &pb.Credentials{
 		Login:    login,
 		Password: password,
 	})
 	if err != nil {
-		return err
+		return fmt.Errorf("register returned error: %w", err)
 	}
-	return err
-
+	return nil
 }
 
 func (c *GRPCClient) Ping(ctx context.Context) error {
 	_, err := c.keep.Ping(ctx, &pb.Empty{})
-	fmt.Println(err)
-	return err
+	if err != nil {
+		return fmt.Errorf("gRPC ping returned error: %w", err)
+	}
+	return nil
 }
 
 type CategoryEntry struct {
@@ -135,7 +137,6 @@ func (c *GRPCClient) GetCategoryHead(ctx context.Context, category Category) (he
 	resp, err := c.keep.GetCategoryHead(ctx, &pb.CategoryType_DTO{
 		Category: pb.Category(category),
 	})
-	fmt.Println(resp, err)
 	info := resp.GetInfo()
 	head = make([]*CategoryEntry, 0, len(info))
 	for _, el := range info {
@@ -146,57 +147,51 @@ func (c *GRPCClient) GetCategoryHead(ctx context.Context, category Category) (he
 	}
 	return head, nil
 }
+
 func (c *GRPCClient) StoreCredentials(ctx context.Context, data []byte, meta string) (dataID, metadata string, err error) {
-	// *DataID_DTO = in *SecureData_DTO, opts ...grpc.CallOption
 	resp, err := c.keep.StoreCredentials(ctx, &pb.SecureData_DTO{
 		Data:     data,
 		Metadata: meta,
 	})
-	fmt.Println(resp, err)
 	return resp.GetID(), meta, err
 }
+
 func (c *GRPCClient) LoadCredentials(ctx context.Context, dataID string) (data []byte, err error) {
-	// *SecureData_DTO = in *DataID_DTO, opts ...grpc.CallOption
 	resp, err := c.keep.LoadCredentials(ctx, &pb.DataID_DTO{
 		ID: dataID,
 	})
-	fmt.Println(resp, err)
 
 	return resp.GetData(), err
 }
+
 func (c *GRPCClient) StoreTextData(ctx context.Context, data []byte, meta string) (dataID, metadata string, err error) {
-	// *DataID_DTO = in *SecureData_DTO, opts ...grpc.CallOption
 	resp, err := c.keep.StoreTextData(ctx, &pb.SecureData_DTO{
 		Data:     data,
 		Metadata: meta,
 	})
-	fmt.Println(resp, err)
 	return resp.GetID(), meta, err
 }
+
 func (c *GRPCClient) LoadTextData(ctx context.Context, dataID string) (data []byte, err error) {
-	// *SecureData_DTO = in *DataID_DTO, opts ...grpc.CallOption
 	resp, err := c.keep.LoadTextData(ctx, &pb.DataID_DTO{
 		ID: dataID,
 	})
-	fmt.Println(resp, err)
 
 	return resp.GetData(), err
 }
+
 func (c *GRPCClient) StoreCreditCard(ctx context.Context, data []byte, meta string) (dataID, metadata string, err error) {
-	// *DataID_DTO = in *SecureData_DTO, opts ...grpc.CallOption
 	resp, err := c.keep.StoreCreditCard(ctx, &pb.SecureData_DTO{
 		Data:     data,
 		Metadata: meta,
 	})
-	fmt.Println(resp, err)
 	return resp.GetID(), meta, err
 }
+
 func (c *GRPCClient) LoadCreditCard(ctx context.Context, dataID string) (data []byte, err error) {
-	// *SecureData_DTO = in *DataID_DTO, opts ...grpc.CallOption
 	resp, err := c.keep.LoadCreditCard(ctx, &pb.DataID_DTO{
 		ID: dataID,
 	})
-	fmt.Println(resp, err)
 
 	return resp.GetData(), err
 }
