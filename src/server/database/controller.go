@@ -111,7 +111,10 @@ func (s *storageWrapper) GetUserData(ctx context.Context, login string) (uid, pa
 		Where("login = ?", login).
 		Take(&user).
 		Error
-	return user.ID, user.Password, fmt.Errorf("user pw get: %w", err)
+	if err != nil {
+		return "", "", fmt.Errorf("user pw get: %w", err)
+	}
+	return user.ID, user.Password, nil
 }
 
 // AddSession operates with database using GORM
@@ -132,6 +135,8 @@ func (s *storageWrapper) AddSession(ctx context.Context, uid, sid string) (err e
 
 // UpdateSession operates with database using GORM
 func (s *storageWrapper) UpdateSession(ctx context.Context, uid, sid string) (err error) {
+	fmt.Println("creating session:\ntime now:", time.Now(),
+		"\nExpiration time:\n", time.Now().Add(time.Duration(s.conf.Server.SessionLife)*time.Second))
 	err = s.PSQL.WithContext(ctx).
 		Model(&Session{}).
 		Where("uid = ?", uid).
@@ -152,11 +157,7 @@ func (s *storageWrapper) RefreshSession(ctx context.Context, sid string) (uid st
 	op := s.PSQL.WithContext(ctx).
 		Model(&Session{}).
 		Where("id = ?", sid).
-		Take(&currentSession).
-		Where("expires < ?", time.Now()).
-		Updates(Session{
-			Expires: time.Now().Add(time.Duration(s.conf.Server.SessionLife) * time.Second),
-		})
+		Take(&currentSession)
 	ok = op.RowsAffected > 0
 	err = op.Error
 	if err != nil {
@@ -165,13 +166,10 @@ func (s *storageWrapper) RefreshSession(ctx context.Context, sid string) (uid st
 	if currentSession.Expires.Before(time.Now()) {
 		return currentSession.UID, false, ErrSessionStale
 	}
-	//currentSession.Expires = time.Now().Add(time.Duration(s.conf.Server.SessionLife) * time.Second)
-	//err = s.PSQL.WithContext(ctx).Save(currentSession).Error
-	//logrus.Debug("PSQL refreshed session", sid)
-	//if err != nil {
-	//	return currentSession.UID, true, fmt.Errorf("session refresh: %w", err)
-	//}
-	return currentSession.UID, true, nil
+	op.Updates(Session{
+		Expires: time.Now().Add(time.Duration(s.conf.Server.SessionLife) * time.Second),
+	})
+	return currentSession.UID, ok, nil
 }
 
 // credentials section

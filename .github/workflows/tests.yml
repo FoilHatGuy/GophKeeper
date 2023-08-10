@@ -1,5 +1,9 @@
 name: tests
 on:
+  push:
+    branches:
+      - main
+      - dev
   pull_request:
 
 jobs:
@@ -50,10 +54,10 @@ jobs:
           go-version: 1.20.6
           cache: true
 
-#      - name: Use sample .env file
-#        run: pwd && cp ./sample.env ./.env && cat ./.env
+      - name: Use sample .env file
+        run: pwd && cp ./sample.env ./.env && cat ./.env
 
-      - name: Test unit
+      - name: Test ${{ matrix.scope }}
         run: go test -tags=${{ matrix.scope }} -race -coverprofile ${{ matrix.scope }}.txt -covermode atomic ./...
 
       - name: Upload coverage report to Codecov

@@ -1,4 +1,4 @@
-package states
+package application
 
 import (
 	"bufio"
@@ -28,14 +28,16 @@ var (
 )
 
 type state interface {
-	Execute(ctx context.Context, command string) (resultState state, err error)
+	execute(ctx context.Context, command string) (resultState state, err error)
+	getName() string
 }
 
 type stateData interface {
 	state
-	Show(ctx context.Context)
-	Fetch(ctx context.Context) (err error)
+	show(ctx context.Context)
+	fetch(ctx context.Context) (err error)
 }
+
 type Application struct {
 	state     state
 	cat       map[int]state
@@ -46,15 +48,15 @@ type Application struct {
 	encoder   *encoding.Encoder
 }
 
-func New(config *cfg.ConfigT) *Application {
+func newApplication(config *cfg.ConfigT) *Application {
 	app := &Application{
 		config: config,
 	}
 	catalogue := map[int]state{
-		stateLogin:  &stateLoginType{app, config},
-		stateMenu:   &stateMenuType{app, config},
-		stateConfig: &stateConfigType{app, config},
-		stateCreds:  &stateCredsType{app: app, config: config, inputField: -1},
+		stateLogin:  newLoginState(app, config),
+		stateMenu:   newMenuState(app, config),
+		stateConfig: newConfigState(app, config),
+		stateCreds:  newCredsState(app, config),
 		// stateCard:   &stateCardType{app, config, nil},
 		// stateText:   &stateTextType{app, config, nil},
 		// stateFile:   &stateFileType{app, config, nil},
@@ -73,7 +75,7 @@ func (a *Application) Run() {
 	scanner := bufio.NewScanner(os.Stdin)
 	fmt.Println("app is ready to accept commands!")
 	for {
-		fmt.Printf("%s%T:%s ", colorBlue, a.state, colorNone)
+		fmt.Printf("%s%s:%s ", colorBlue, a.state.getName(), colorNone)
 		scanner.Scan()
 		ctx := context.Background()
 		err := a.Execute(ctx, scanner.Text())
@@ -88,13 +90,9 @@ func (a *Application) Run() {
 	panic(err)
 }
 
-func includes(s []string, e string) bool {
-	for _, a := range s {
-		if a == e {
-			return true
-		}
-	}
-	return false
+func New(config *cfg.ConfigT) {
+	app := newApplication(config)
+	app.Run()
 }
 
 func (a *Application) Execute(ctx context.Context, command string) error {
@@ -109,9 +107,9 @@ func (a *Application) Execute(ctx context.Context, command string) error {
 		}
 	}
 
-	newState, err := a.state.Execute(ctx, command)
+	newState, err := a.state.execute(ctx, command)
 	if errors.Is(err, ErrUnrecognizedCommand) {
-		newState, err = a.state.Execute(ctx, commandHelp[0])
+		newState, err = a.state.execute(ctx, commandHelp[0])
 		if err != nil {
 			return fmt.Errorf("application error: %w", err)
 		}

@@ -46,7 +46,7 @@ func (e *Encoder) Decode(in []byte) (out string, err error) {
 // Encode
 // Encodes string using given secret
 func (e *Encoder) Encode(in string) (out []byte) {
-	src := make([]byte, int(len(in)/aes.BlockSize+1)*aes.BlockSize)
+	src := make([]byte, (len(in)/aes.BlockSize+1)*aes.BlockSize)
 	copy(src, in)
 	dst := make([]byte, aes.BlockSize)
 	e.crypt.Encrypt(dst, src)

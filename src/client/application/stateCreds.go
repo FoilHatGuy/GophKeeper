@@ -1,4 +1,4 @@
-package states
+package application
 
 import (
 	"context"
@@ -19,6 +19,7 @@ type dataEntry struct {
 type (
 	dataType       map[string]*dataEntry
 	stateCredsType struct {
+		stateName    string
 		app          *Application
 		config       *cfg.ConfigT
 		data         dataType
@@ -34,7 +35,16 @@ var (
 	commandHead = []string{"head", "h"}
 )
 
-func (s *stateCredsType) Execute(ctx context.Context, command string) (resultState state, err error) {
+func newCredsState(app *Application, config *cfg.ConfigT) state {
+	return &stateCredsType{
+		app:        app,
+		config:     config,
+		inputField: -1,
+		stateName:  "Credentials view",
+	}
+}
+
+func (s *stateCredsType) execute(ctx context.Context, command string) (resultState state, err error) {
 	arguments := strings.Split(command, " ")
 	if s.inputField >= 0 {
 		return s.add(ctx, command)
@@ -60,31 +70,35 @@ func (s *stateCredsType) Execute(ctx context.Context, command string) (resultSta
 		return s, nil
 
 	case includes(commandHead, strings.ToLower(arguments[0])):
-		err = s.Fetch(ctx)
+		err = s.fetch(ctx)
 		if err != nil {
 			return nil, fmt.Errorf("head fetching failed: %w", err)
 		}
 		if len(s.data) == 0 {
 			return s, errors.New("empty list")
 		}
-		s.Show(ctx)
+		s.show(ctx)
 		return s, nil
 
 	case includes(commandLoad, strings.ToLower(arguments[0])):
 		if len(arguments) != 2 {
 			return s, fmt.Errorf("%w\nyou should specify the id of entry", ErrUnrecognizedCommand)
 		}
-		id, err := strconv.Atoi(arguments[1])
+		var id int
+		id, err = strconv.Atoi(arguments[1])
 		if err != nil {
 			return s, fmt.Errorf("%w\nid should be int", ErrUnrecognizedCommand)
 		}
 		dataID := s.dataIDs[id]
 		if len(s.data[dataID].Data) == 0 {
-			resp, err := s.app.grpc.LoadCredentials(ctx, s.data[dataID].DataID)
+			var resp []byte
+			resp, err = s.app.grpc.LoadCredentials(ctx, s.data[dataID].DataID)
 			if err != nil {
 				return s, fmt.Errorf("requesting data failed: %w", err)
 			}
-			data, err := s.app.encoder.Decode(resp)
+
+			var data string
+			data, err = s.app.encoder.Decode(resp)
 			if err != nil {
 				return s, fmt.Errorf("decoding data failed: %w", err)
 			}
@@ -104,8 +118,8 @@ func (s *stateCredsType) Execute(ctx context.Context, command string) (resultSta
 	default:
 		return s, ErrUnrecognizedCommand
 	}
-	s.Show(ctx)
-	return s, err
+	s.show(ctx)
+	return s, nil
 }
 
 func (s *stateCredsType) add(ctx context.Context, command string) (resultState state, err error) {
@@ -126,7 +140,7 @@ func (s *stateCredsType) add(ctx context.Context, command string) (resultState s
 	return s, nil
 }
 
-func (s *stateCredsType) Show(_ context.Context) {
+func (s *stateCredsType) show(_ context.Context) {
 	const metaLen = 50
 	const dataLen = 30
 	for i, dataID := range s.dataIDs {
@@ -139,13 +153,13 @@ func (s *stateCredsType) Show(_ context.Context) {
 	}
 }
 
-func (s *stateCredsType) Fetch(ctx context.Context) (err error) {
+func (s *stateCredsType) fetch(ctx context.Context) (err error) {
 	if s.data == nil {
 		s.data = make(dataType)
 	}
 	head, err := s.app.grpc.GetCategoryHead(ctx, GRPCClient.CategoryCred)
 	if err != nil {
-		return err
+		return fmt.Errorf("during fetching category head: %w", err)
 	}
 
 	for _, el := range head {
@@ -160,10 +174,6 @@ func (s *stateCredsType) Fetch(ctx context.Context) (err error) {
 	return nil
 }
 
-func firstN(s string, n int) string {
-	r := []rune(s)
-	if len(r) > n {
-		return string(r[:n])
-	}
-	return s
+func (s *stateCredsType) getName() string {
+	return s.stateName
 }

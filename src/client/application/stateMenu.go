@@ -1,4 +1,4 @@
-package states
+package application
 
 import (
 	"context"
@@ -9,8 +9,17 @@ import (
 )
 
 type stateMenuType struct {
-	app    *Application
-	config *cfg.ConfigT
+	stateName string
+	app       *Application
+	config    *cfg.ConfigT
+}
+
+func newMenuState(app *Application, config *cfg.ConfigT) state {
+	return &stateMenuType{
+		app:       app,
+		config:    config,
+		stateName: "Menu view",
+	}
 }
 
 var (
@@ -21,7 +30,7 @@ var (
 	commandConfig = []string{"config", "cfg", "c"}
 )
 
-func (s *stateMenuType) Execute(ctx context.Context, command string) (resultState state, err error) {
+func (s *stateMenuType) execute(ctx context.Context, command string) (resultState state, err error) {
 	arguments := strings.Split(command, " ")
 	switch {
 	case includes(commandHelp, strings.ToLower(arguments[0])):
@@ -54,11 +63,11 @@ func (s *stateMenuType) Execute(ctx context.Context, command string) (resultStat
 		default:
 			return s, fmt.Errorf("%w\nplease choose one of available categories", ErrUnrecognizedCommand)
 		}
-		err = newState.Fetch(ctx)
+		err = newState.fetch(ctx)
 		if err != nil {
 			return newState, fmt.Errorf("during fetching category head: %w", err)
 		}
-		newState.Show(ctx)
+		newState.show(ctx)
 		return newState, nil
 
 	case includes(commandConfig, strings.ToLower(arguments[0])):
@@ -67,9 +76,9 @@ func (s *stateMenuType) Execute(ctx context.Context, command string) (resultStat
 	default:
 		return s, ErrUnrecognizedCommand
 	}
+	return s, nil
+}
 
-	if err != nil {
-		return s, err
-	}
-	return s, err
+func (s *stateMenuType) getName() string {
+	return s.stateName
 }

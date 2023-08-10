@@ -1,3 +1,5 @@
+//go:build unit
+
 package passwords
 
 import (
@@ -12,7 +14,7 @@ type HashTestSuite struct {
 }
 
 func (s *HashTestSuite) TestHash() {
-	pw := "password"
+	pw := "TestHash"
 	fmt.Printf("pw: %q\n", pw)
 	hashed, err := HashPassword(pw)
 	s.Assert().NoError(err)
@@ -24,7 +26,7 @@ func (s *HashTestSuite) TestHash() {
 }
 
 func (s *HashTestSuite) TestWrongPW() {
-	pw := "password"
+	pw := "TestWrongPW"
 	fmt.Printf("pw: %q\n", pw)
 	hashed, err := HashPassword(pw)
 	s.Assert().NoError(err)
@@ -37,7 +39,7 @@ func (s *HashTestSuite) TestWrongPW() {
 }
 
 func (s *HashTestSuite) TestFaultyEncoding() {
-	pw := "password"
+	pw := "TestFaultyEncoding"
 	fmt.Printf("pw: %q\n", pw)
 	hashed, err := HashPassword(pw)
 	s.Assert().NoError(err)
@@ -50,7 +52,7 @@ func (s *HashTestSuite) TestFaultyEncoding() {
 }
 
 func (s *HashTestSuite) TestBadArgonVer() {
-	pw := "password"
+	pw := "TestBadArgonVer"
 	hashed := "$argon2id$v=17$m=65536,t=2,p=2$n+QasX1OlriHZY9FtzWtsw$vxMgsOXDiLQo28r69qYqNYJmxMTBcr6IzJGz2C+7cJM"
 	//                  ^v=19 - correct version
 	fmt.Printf("pw: %q\n", pw)
@@ -71,7 +73,8 @@ func (s *HashTestSuite) TestBadArgonVer() {
 }
 
 func (s *HashTestSuite) TestBadHashStructure() {
-	pw := "password"
+	// nolint:gosec
+	pw := "TestBadHashStructure"
 	hashed := "$argon2id$v=19$s=65536,v=2,a=2$n+QasX1OlriHZY9FtzWtsw$vxMgsOXDiLQo28r69qYqNYJmxMTBcr6IzJGz2C+7cJM"
 	//                      ^$m=65536,t=2,p=2 - correct config
 	fmt.Printf("pw: %q\n", pw)
@@ -83,7 +86,8 @@ func (s *HashTestSuite) TestBadHashStructure() {
 }
 
 func (s *HashTestSuite) TestBadBase64Encode() {
-	pw := "password"
+	// nolint:gosec
+	pw := "TestBadBase64Encode"
 	hashed := "$argon2id$v=19$m=65536,t=2,p=2$%SignIsNotAllowedInEnc$vxMgsOXDiLQo28r69qYqNYJmxMTBcr6IzJGz2C+7cJM"
 	//                correct salt base64 -> ^n+QasX1OlriHZY9FtzWtsw
 	fmt.Printf("pw: %q\n", pw)

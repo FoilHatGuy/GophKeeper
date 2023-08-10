@@ -1,4 +1,4 @@
-package states
+package application
 
 import (
 	"context"
@@ -9,18 +9,31 @@ import (
 )
 
 type stateConfigType struct {
-	app    *Application
-	config *cfg.ConfigT
+	stateName string
+	app       *Application
+	config    *cfg.ConfigT
 }
 
-//var (
-//commandCred   = []string{"credentials", "cred", "cr"}
-//commandCard   = []string{"card", "c"}
-//commandText   = []string{"text", "t"}
-//commandFile   = []string{"file", "f"}
-//)
+func newConfigState(app *Application, config *cfg.ConfigT) state {
+	return &stateConfigType{
+		app:       app,
+		config:    config,
+		stateName: "Config view",
+	}
+}
 
-func (s *stateConfigType) Execute(ctx context.Context, command string) (resultState state, err error) {
+func (s *stateConfigType) getName() string {
+	return s.stateName
+}
+
+// var (
+// commandCred   = []string{"credentials", "cred", "cr"}
+// commandCard   = []string{"card", "c"}
+// commandText   = []string{"text", "t"}
+// commandFile   = []string{"file", "f"}
+// )
+
+func (s *stateConfigType) execute(ctx context.Context, command string) (resultState state, err error) {
 	arguments := strings.Split(command, " ")
 	switch {
 	case includes(commandHelp, strings.ToLower(arguments[0])):

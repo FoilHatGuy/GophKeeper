@@ -1,4 +1,4 @@
-package states
+package application
 
 import (
 	"context"
@@ -12,8 +12,17 @@ import (
 )
 
 type stateLoginType struct {
-	app    *Application
-	config *cfg.ConfigT
+	stateName string
+	app       *Application
+	config    *cfg.ConfigT
+}
+
+func newLoginState(app *Application, config *cfg.ConfigT) state {
+	return &stateLoginType{
+		app:       app,
+		config:    config,
+		stateName: "Login view",
+	}
 }
 
 var (
@@ -21,7 +30,7 @@ var (
 	commandRegister = []string{"register", "reg", "r"}
 )
 
-func (s *stateLoginType) Execute(ctx context.Context, command string) (resultState state, err error) {
+func (s *stateLoginType) execute(ctx context.Context, command string) (resultState state, err error) {
 	arguments := strings.Split(command, " ")
 	switch {
 	case includes(commandHelp, strings.ToLower(arguments[0])):
@@ -55,6 +64,7 @@ func (s *stateLoginType) Execute(ctx context.Context, command string) (resultSta
 
 func (s *stateLoginType) login(ctx context.Context, login, password string) (state, error) {
 	modalKick := s.app.newModal(
+		"Kick other session?",
 		"This user is already logged in.\n"+
 			"You can kick other device or don't do anything.\n"+
 			"Kick other session? [y/n]",
@@ -88,6 +98,7 @@ func (s *stateLoginType) login(ctx context.Context, login, password string) (sta
 func (s *stateLoginType) saveSecret(login, password string) (outState state, err error) {
 	keyLength := 5
 	modalSecret := s.app.newModal(
+		"Enter your secret",
 		"Secret key for this user is not saved on the device.\n"+
 			"Please enter a secret which will be used to encode your data:",
 
@@ -120,4 +131,8 @@ func (s *stateLoginType) saveSecret(login, password string) (outState state, err
 	}
 
 	return s.app.cat[stateMenu], nil
+}
+
+func (s *stateLoginType) getName() string {
+	return s.stateName
 }
