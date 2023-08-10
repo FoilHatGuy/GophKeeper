@@ -8,8 +8,8 @@ import (
 	"strings"
 
 	"github.com/google/uuid"
-	grpclogrus "github.com/grpc-ecosystem/go-grpc-middleware/logging/logrus"
-	grpcctxtags "github.com/grpc-ecosystem/go-grpc-middleware/tags"
+	grpc_logrus "github.com/grpc-ecosystem/go-grpc-middleware/logging/logrus"
+	grpc_ctxtags "github.com/grpc-ecosystem/go-grpc-middleware/tags"
 	log "github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -37,26 +37,27 @@ func RunGRPCServer(config *cfg.ConfigT, logger *log.Logger) {
 	backend := ServerGRPC{db: db}
 
 	logrusEntry := log.NewEntry(logger)
-	opts := []grpclogrus.Option{
-		grpclogrus.WithLevels(func(code codes.Code) log.Level {
+	opts := []grpc_logrus.Option{
+		grpc_logrus.WithLevels(func(code codes.Code) log.Level {
 			if code == codes.OK {
 				return log.InfoLevel
 			}
 			return log.ErrorLevel
 		}),
 	}
-	grpclogrus.ReplaceGrpcLogger(logrusEntry)
+	grpc_logrus.ReplaceGrpcLogger(logrusEntry)
 
 	server := grpc.NewServer(
 		grpc.ChainUnaryInterceptor(
-			grpcctxtags.UnaryServerInterceptor(grpcctxtags.WithFieldExtractor(grpcctxtags.CodeGenRequestFieldExtractor)),
-			grpclogrus.UnaryServerInterceptor(logrusEntry, opts...),
+			Async,
+			grpc_ctxtags.UnaryServerInterceptor(grpc_ctxtags.WithFieldExtractor(grpc_ctxtags.CodeGenRequestFieldExtractor)),
+			grpc_logrus.UnaryServerInterceptor(logrusEntry, opts...),
 			backend.Authenticate,
 		),
 		//nolint:godox
 		grpc.ChainStreamInterceptor( // todo: add stream auth
-			grpcctxtags.StreamServerInterceptor(grpcctxtags.WithFieldExtractor(grpcctxtags.CodeGenRequestFieldExtractor)),
-			grpclogrus.StreamServerInterceptor(logrusEntry, opts...),
+			grpc_ctxtags.StreamServerInterceptor(grpc_ctxtags.WithFieldExtractor(grpc_ctxtags.CodeGenRequestFieldExtractor)),
+			grpc_logrus.StreamServerInterceptor(logrusEntry, opts...),
 		),
 	)
 	reflection.Register(server)
@@ -85,7 +86,7 @@ func (s *AuthGRPC) Login(ctx context.Context, in *pb.Credentials) (out *pb.Sessi
 	// get all data
 	login := in.GetLogin()
 	pass := in.GetPassword()
-	passStored, err := s.db.GetPassword(ctx, login)
+	uid, passStored, err := s.db.GetUserData(ctx, login)
 	if errors.Is(err, database.ErrNotFound) {
 		return nil, status.Errorf(codes.Unauthenticated, "login or password incorrect")
 	}
@@ -98,7 +99,7 @@ func (s *AuthGRPC) Login(ctx context.Context, in *pb.Credentials) (out *pb.Sessi
 
 	// if ok, add session
 	sid := uuid.NewString()
-	err = s.db.AddSession(ctx, login, sid)
+	err = s.db.AddSession(ctx, uid, sid)
 	switch {
 	case errors.Is(err, database.ErrConflict):
 		return nil, status.Errorf(codes.AlreadyExists, "already logged in")
@@ -115,7 +116,7 @@ func (s *AuthGRPC) KickOtherSession(ctx context.Context, in *pb.Credentials) (ou
 	// get all data
 	login := in.GetLogin()
 	pass := in.GetPassword()
-	passStored, err := s.db.GetPassword(ctx, login)
+	uid, passStored, err := s.db.GetUserData(ctx, login)
 	if errors.Is(err, database.ErrNotFound) {
 		return nil, status.Errorf(codes.Unauthenticated, "login or password incorrect")
 	}
@@ -128,8 +129,9 @@ func (s *AuthGRPC) KickOtherSession(ctx context.Context, in *pb.Credentials) (ou
 
 	// if ok, add session
 	sid := uuid.NewString()
-	err = s.db.UpdateSession(ctx, login, sid)
+	err = s.db.UpdateSession(ctx, uid, sid)
 	if err != nil {
+		log.Error(err)
 		return nil, status.Errorf(codes.Internal, "login or password incorrect")
 	}
 	out = &pb.SessionID_DTO{SID: sid}
@@ -143,12 +145,14 @@ func (s *AuthGRPC) Register(ctx context.Context, in *pb.Credentials) (out *pb.Em
 	password := in.GetPassword()
 	hashed, err := passwords.HashPassword(password)
 	if err != nil {
+		log.Error(err)
 		return nil, status.Errorf(codes.Internal, "password is incorrect")
 	}
 
 	uid := uuid.NewString()
 	err = s.db.AddUser(ctx, uid, login, hashed)
 	if err != nil {
+		log.Error(err)
 		return nil, status.Errorf(codes.Internal, "database error")
 	}
 	out = &pb.Empty{}
@@ -159,6 +163,22 @@ func (s *AuthGRPC) Register(ctx context.Context, in *pb.Credentials) (out *pb.Em
 type ServerGRPC struct {
 	pb.UnimplementedGophKeeperServer
 	db database.StorageController
+}
+
+// Async launches each handle as a goroutine to prevent panic from stopping the entire server
+func Async(
+	ctx context.Context,
+	req interface{},
+	_ *grpc.UnaryServerInfo,
+	handler grpc.UnaryHandler,
+) (response interface{}, errRPC error) {
+	c := make(chan bool)
+	go func() {
+		response, errRPC = handler(ctx, req)
+		c <- true
+	}()
+	<-c
+	return
 }
 
 // Authenticate manages sid cookies.
@@ -183,13 +203,15 @@ func (s *ServerGRPC) Authenticate(
 	sid := metaValue[0]
 
 	uid, ok, err := s.db.RefreshSession(ctx, sid)
+	ctx = context.WithValue(ctx, uidMetaKey, uid)
+
 	if err != nil {
-		return nil, status.Errorf(codes.Internal, "while accessing database")
+		log.Error(err)
+		return nil, status.Errorf(codes.Internal, "session refresh failed")
 	}
 	if !ok {
 		return nil, status.Errorf(codes.ResourceExhausted, "session stale")
 	}
-	ctx = context.WithValue(ctx, uidMetaKey, uid)
 	metadata.AppendToOutgoingContext(ctx, sidMetaKey, sid)
 
 	return handler(ctx, req)
@@ -239,7 +261,7 @@ func (s *ServerGRPC) GetCategoryHead(
 
 	for _, el := range head {
 		newInfo = append(newInfo, &pb.DataInfo{
-			DataID:   el.DataID,
+			DataID:   el.ID,
 			Metadata: el.Metadata,
 		})
 	}
@@ -256,12 +278,13 @@ func (s *ServerGRPC) StoreCredentials(ctx context.Context, in *pb.SecureData_DTO
 	meta := in.GetMetadata()
 	dataID := uuid.NewString()
 
-	uidTL := ctx.Value(uidMetaKey)
-	uid := uidTL.(string)
+	uidTypeLess := ctx.Value(uidMetaKey)
+	uid := uidTypeLess.(string)
 
 	err := s.db.AddCredentials(ctx, uid, dataID, meta, data)
 	if err != nil {
-		return nil, status.Errorf(codes.Internal, "login or password incorrect")
+		log.Error(err)
+		return nil, status.Errorf(codes.Internal, "database error")
 	}
 
 	out = &pb.DataID_DTO{
@@ -280,6 +303,7 @@ func (s *ServerGRPC) LoadCredentials(ctx context.Context, in *pb.DataID_DTO) (ou
 
 	meta, data, err := s.db.GetCredentials(ctx, uid, sid)
 	if err != nil {
+		log.Error(err)
 		return nil, status.Errorf(codes.Internal, "database error")
 	}
 	out = &pb.SecureData_DTO{
@@ -303,6 +327,7 @@ func (s *ServerGRPC) StoreText(ctx context.Context, in *pb.SecureData_DTO) (out 
 
 	err := s.db.AddText(ctx, uid, dataID, meta, data)
 	if err != nil {
+		log.Error(err)
 		return nil, status.Errorf(codes.Internal, "login or password incorrect")
 	}
 
@@ -322,6 +347,7 @@ func (s *ServerGRPC) LoadText(ctx context.Context, in *pb.DataID_DTO) (out *pb.S
 
 	meta, data, err := s.db.GetText(ctx, uid, sid)
 	if err != nil {
+		log.Error(err)
 		return nil, status.Errorf(codes.Internal, "database error")
 	}
 	out = &pb.SecureData_DTO{
@@ -345,6 +371,7 @@ func (s *ServerGRPC) StoreCard(ctx context.Context, in *pb.SecureData_DTO) (out 
 
 	err := s.db.AddCard(ctx, uid, dataID, meta, data)
 	if err != nil {
+		log.Error(err)
 		return nil, status.Errorf(codes.Internal, "login or password incorrect")
 	}
 
@@ -364,6 +391,7 @@ func (s *ServerGRPC) LoadCard(ctx context.Context, in *pb.DataID_DTO) (out *pb.S
 
 	meta, data, err := s.db.GetCard(ctx, uid, sid)
 	if err != nil {
+		log.Error(err)
 		return nil, status.Errorf(codes.Internal, "database error")
 	}
 	out = &pb.SecureData_DTO{

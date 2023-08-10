@@ -9,7 +9,7 @@ import (
 type User struct {
 	gorm.Model
 	ID       string `gorm:"primaryKey"`
-	Login    string
+	Login    string `gorm:"uniqueIndex"`
 	Password string
 }
 
@@ -17,7 +17,7 @@ type Session struct {
 	gorm.Model
 	ID      string
 	UID     string `gorm:"uniqueIndex"`
-	User    User   `gorm:"ForeignKey:UID;references:ID"`
+	User    User   `gorm:"ForeignKey:UID"`
 	Expires time.Time
 }
 
@@ -27,7 +27,7 @@ type SecureCredential struct {
 	Data     []byte
 	Metadata string
 	UID      string
-	User     User `gorm:"ForeignKey:UID;references:ID"`
+	User     User `gorm:"ForeignKey:UID"`
 }
 
 type SecureText struct {
@@ -36,7 +36,7 @@ type SecureText struct {
 	Data     []byte
 	Metadata string
 	UID      string
-	User     User `gorm:"ForeignKey:UID;references:ID"`
+	User     User `gorm:"ForeignKey:UID"`
 }
 
 type SecureCard struct {
@@ -45,7 +45,7 @@ type SecureCard struct {
 	Data     []byte
 	Metadata string
 	UID      string
-	User     User `gorm:"ForeignKey:UID;references:ID"`
+	User     User `gorm:"ForeignKey:UID"`
 }
 
 type SecureFile struct {
@@ -54,5 +54,5 @@ type SecureFile struct {
 	Filename string
 	Metadata string
 	UID      string
-	User     User `gorm:"ForeignKey:UID;references:ID"`
+	User     User `gorm:"ForeignKey:UID"`
 }

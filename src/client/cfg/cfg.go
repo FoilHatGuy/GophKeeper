@@ -60,7 +60,7 @@ func FromDefaults() ConfigOption {
 func FromFlags() ConfigOption {
 	return func(c *ConfigT) *ConfigT {
 		if keyRSAPath != "" {
-			c.RSAPath = keyRSAPath
+			c.SecretPath = keyRSAPath
 		}
 		if serverAddressHTTP != "" {
 			c.ServerAddressHTTP = serverAddressHTTP
@@ -89,13 +89,13 @@ func FromJSON() ConfigOption {
 		data, err := os.ReadFile(configPath)
 		if err != nil {
 			fmt.Printf("opening JSON failed. Details: %v\n", err)
-			return nil
+			return c
 		}
 		c2 := *c
 		err = json.Unmarshal(data, &c2)
 		if err != nil {
 			fmt.Println(err)
-			return nil
+			return c
 		}
 
 		return &c2

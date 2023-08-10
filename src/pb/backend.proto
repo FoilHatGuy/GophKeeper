@@ -44,14 +44,14 @@ service GophKeeper {
   rpc StoreCredentials (SecureData_DTO) returns (DataID_DTO) {}
   rpc LoadCredentials (DataID_DTO) returns (SecureData_DTO) {}
 
-//  rpc StoreTextData (SecureData_DTO) returns (DataID_DTO) {}
-//  rpc LoadTextData (DataID_DTO) returns (SecureData_DTO) {}
+  rpc StoreTextData (SecureData_DTO) returns (DataID_DTO) {}
+  rpc LoadTextData (DataID_DTO) returns (SecureData_DTO) {}
 
-//  rpc StoreCreditCard (SecureData_DTO) returns (DataID_DTO) {}
-//  rpc LoadCreditCard (DataID_DTO) returns (SecureData_DTO) {}
+  rpc StoreCreditCard (SecureData_DTO) returns (DataID_DTO) {}
+  rpc LoadCreditCard (DataID_DTO) returns (SecureData_DTO) {}
 
-//  rpc StoreCreditCard (SecureData_DTO) returns (DataID_DTO) {}
-//  rpc LoadCreditCard (DataID_DTO) returns (SecureData_DTO) {}
+//  rpc StoreFile (SecureData_DTO) returns (DataID_DTO) {}
+//  rpc LoadFile (DataID_DTO) returns (SecureData_DTO) {}
 }
 
 

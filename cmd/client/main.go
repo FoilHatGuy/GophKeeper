@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 
-	"gophKeeper/src/client/app"
+	"gophKeeper/src/client/application"
 	"gophKeeper/src/client/cfg"
 )
 
@@ -23,5 +23,5 @@ func main() {
 	fmt.Printf("buildDate\t= %q\n", buildDate)
 	fmt.Printf("buildCommit\t= %q\n", buildCommit)
 	fmt.Print("Wow, client is running!")
-	app.MainLoop(config)
+	application.New(config)
 }
