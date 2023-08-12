@@ -18,6 +18,11 @@ func main() {
 		cfg.FromDefaults(),
 		cfg.FromEnv(),
 		cfg.FromJSON(),
+		cfg.WithBuild(&cfg.BuildT{
+			BuildVersion: buildVersion,
+			BuildDate:    buildDate,
+			BuildCommit:  buildCommit,
+		}),
 	)
 
 	log.SetFormatter(&log.TextFormatter{

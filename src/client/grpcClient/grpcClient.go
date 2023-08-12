@@ -23,7 +23,7 @@ func New(config *cfg.ConfigT) (client *GRPCClient, callback func() error) {
 		config: config,
 	}
 	conn, err := grpc.Dial(
-		config.ServerAddressGRPC,
+		config.ServerAddress,
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 		grpc.WithUnaryInterceptor(client.Authenticate),
 	)

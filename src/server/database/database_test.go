@@ -76,7 +76,6 @@ func (s *DatabaseIntegrationTestSuite) TestUsers() {
 	otherLogin := uuid.NewString()
 	_, _, err = s.wrapper.GetUserData(s.ctx, otherLogin)
 	s.Assert().Error(err)
-
 }
 
 func (s *DatabaseIntegrationTestSuite) TestSessions() {
@@ -90,6 +89,8 @@ func (s *DatabaseIntegrationTestSuite) TestSessions() {
 	sid := uuid.NewString()
 	err = s.wrapper.AddSession(s.ctx, uid, sid)
 	s.Assert().NoError(err)
+	err = s.wrapper.AddSession(s.ctx, uid, sid)
+	s.Assert().ErrorIs(err, ErrConflict)
 
 	time.Sleep(1 * time.Second)
 	uid2, ok, err := s.wrapper.RefreshSession(s.ctx, sid)

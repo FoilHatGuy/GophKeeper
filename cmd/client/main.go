@@ -18,6 +18,11 @@ func main() {
 		cfg.FromDefaults(),
 		cfg.FromJSON(),
 		cfg.FromFlags(),
+		cfg.WithBuild(&cfg.BuildT{
+			BuildVersion: buildVersion,
+			BuildDate:    buildDate,
+			BuildCommit:  buildCommit,
+		}),
 	)
 	fmt.Printf("buildVersion\t= %q\n", buildVersion)
 	fmt.Printf("buildDate\t= %q\n", buildDate)

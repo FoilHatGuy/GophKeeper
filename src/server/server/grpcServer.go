@@ -64,7 +64,7 @@ func RunGRPCServer(config *cfg.ConfigT, logger *log.Logger) {
 	pb.RegisterAuthServer(server, &auth)
 	pb.RegisterGophKeeperServer(server, &backend)
 
-	lis, err := net.Listen("tcp", config.Server.AddressGRPC)
+	lis, err := net.Listen("tcp", config.Server.Address)
 	if err != nil {
 		log.Fatalf("failed to listen: %v", err)
 	}
