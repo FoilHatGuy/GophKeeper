@@ -24,6 +24,7 @@ func main() {
 			BuildCommit:  buildCommit,
 		}),
 	)
+	config.Save()
 	fmt.Printf("buildVersion\t= %q\n", buildVersion)
 	fmt.Printf("buildDate\t= %q\n", buildDate)
 	fmt.Printf("buildCommit\t= %q\n", buildCommit)

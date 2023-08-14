@@ -9,6 +9,7 @@ require (
 	github.com/sakirsensoy/genv v1.0.1
 	github.com/sirupsen/logrus v1.9.3
 	github.com/stretchr/testify v1.8.4
+	go.uber.org/mock v0.2.0
 	golang.org/x/crypto v0.11.0
 	google.golang.org/grpc v1.56.2
 	google.golang.org/protobuf v1.31.0

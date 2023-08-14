@@ -16,24 +16,40 @@ import (
 	pb "gophKeeper/src/pb"
 )
 
+type GRPCWrapper interface {
+	Authenticate(ctx context.Context, method string, req, reply interface{}, cc *grpc.ClientConn,
+		invoker grpc.UnaryInvoker, opts ...grpc.CallOption) (err error)
+	Login(ctx context.Context, login, password string) error
+	KickOtherSession(ctx context.Context, login, password string) error
+	Register(ctx context.Context, login, password string) error
+	Ping(ctx context.Context) error
+	GetCategoryHead(ctx context.Context, category Category) (head []*CategoryEntry, err error)
+	StoreCredData(ctx context.Context, data []byte, meta string) (dataID, metadata string, err error)
+	LoadCredData(ctx context.Context, dataID string) (data []byte, err error)
+	StoreTextData(ctx context.Context, data []byte, meta string) (dataID, metadata string, err error)
+	LoadTextData(ctx context.Context, dataID string) (data []byte, err error)
+	StoreCardData(ctx context.Context, data []byte, meta string) (dataID, metadata string, err error)
+	LoadCardData(ctx context.Context, dataID string) (data []byte, err error)
+}
+
 var ErrAlreadyLoggedIn = errors.New("user already logged in")
 
-func New(config *cfg.ConfigT) (client *GRPCClient, callback func() error) {
-	client = &GRPCClient{
+func New(config *cfg.ConfigT) (client GRPCWrapper, callback func() error) {
+	newClient := &GRPCClient{
 		config: config,
 	}
 	conn, err := grpc.Dial(
 		config.ServerAddress,
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
-		grpc.WithUnaryInterceptor(client.Authenticate),
+		grpc.WithUnaryInterceptor(newClient.Authenticate),
 	)
 	if err != nil {
 		panic("connection refused")
 	}
 
-	client.auth = pb.NewAuthClient(conn)
-	client.keep = pb.NewGophKeeperClient(conn)
-	return client, conn.Close
+	newClient.auth = pb.NewAuthClient(conn)
+	newClient.keep = pb.NewGophKeeperClient(conn)
+	return GRPCWrapper(newClient), conn.Close
 }
 
 type GRPCClient struct {
@@ -112,7 +128,7 @@ func (c *GRPCClient) Register(ctx context.Context, login, password string) error
 }
 
 func (c *GRPCClient) Ping(ctx context.Context) error {
-	_, err := c.keep.Ping(ctx, &pb.Empty{})
+	_, err := c.auth.Ping(ctx, &pb.Empty{})
 	if err != nil {
 		return fmt.Errorf("gRPC ping returned error: %w", err)
 	}
@@ -151,9 +167,9 @@ func (c *GRPCClient) GetCategoryHead(ctx context.Context, category Category) (he
 	return head, nil
 }
 
-func (c *GRPCClient) StoreCredentials(ctx context.Context, data []byte, meta string,
+func (c *GRPCClient) StoreCredData(ctx context.Context, data []byte, meta string,
 ) (dataID, metadata string, err error) {
-	resp, err := c.keep.StoreCredentials(ctx, &pb.SecureData_DTO{
+	resp, err := c.keep.StoreCredData(ctx, &pb.SecureData_DTO{
 		Data:     data,
 		Metadata: meta,
 	})
@@ -163,8 +179,8 @@ func (c *GRPCClient) StoreCredentials(ctx context.Context, data []byte, meta str
 	return resp.GetID(), meta, nil
 }
 
-func (c *GRPCClient) LoadCredentials(ctx context.Context, dataID string) (data []byte, err error) {
-	resp, err := c.keep.LoadCredentials(ctx, &pb.DataID_DTO{
+func (c *GRPCClient) LoadCredData(ctx context.Context, dataID string) (data []byte, err error) {
+	resp, err := c.keep.LoadCredData(ctx, &pb.DataID_DTO{
 		ID: dataID,
 	})
 	if err != nil {
@@ -194,9 +210,9 @@ func (c *GRPCClient) LoadTextData(ctx context.Context, dataID string) (data []by
 	return resp.GetData(), err
 }
 
-func (c *GRPCClient) StoreCreditCard(ctx context.Context, data []byte, meta string,
+func (c *GRPCClient) StoreCardData(ctx context.Context, data []byte, meta string,
 ) (dataID, metadata string, err error) {
-	resp, err := c.keep.StoreCreditCard(ctx, &pb.SecureData_DTO{
+	resp, err := c.keep.StoreCardData(ctx, &pb.SecureData_DTO{
 		Data:     data,
 		Metadata: meta,
 	})
@@ -206,8 +222,8 @@ func (c *GRPCClient) StoreCreditCard(ctx context.Context, data []byte, meta stri
 	return resp.GetID(), meta, err
 }
 
-func (c *GRPCClient) LoadCreditCard(ctx context.Context, dataID string) (data []byte, err error) {
-	resp, err := c.keep.LoadCreditCard(ctx, &pb.DataID_DTO{
+func (c *GRPCClient) LoadCardData(ctx context.Context, dataID string) (data []byte, err error) {
+	resp, err := c.keep.LoadCardData(ctx, &pb.DataID_DTO{
 		ID: dataID,
 	})
 	if err != nil {
