@@ -2,6 +2,9 @@ name: Git Version
 
 on:
   push:
+    branches:
+      - main
+      - dev
 
 jobs:
   version:

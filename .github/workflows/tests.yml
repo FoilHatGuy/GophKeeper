@@ -1,6 +1,9 @@
 name: tests
 on:
   push:
+    branches:
+      - main
+      - dev
   pull_request:
 
 jobs:
@@ -19,6 +22,17 @@ jobs:
           # install-mode: "goinstall"
 
   test:
+    services:
+      postgres:
+        image: postgres:13
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: GophKeeper
+        ports:
+          - 5432:5432
+        options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
+
     env:
       CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
@@ -40,7 +54,10 @@ jobs:
           go-version: 1.20.6
           cache: true
 
-      - name: Test unit
+      - name: Use sample .env file
+        run: pwd && cp ./sample.env ./.env && cat ./.env
+
+      - name: Test ${{ matrix.scope }}
         run: go test -tags=${{ matrix.scope }} -race -coverprofile ${{ matrix.scope }}.txt -covermode atomic ./...
 
       - name: Upload coverage report to Codecov
