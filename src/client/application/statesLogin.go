@@ -39,6 +39,7 @@ func (s *stateLoginType) execute(ctx context.Context, command string) (resultSta
 			"login    - %q $login$ $password$ - tries to log in with entered credentials\n"+
 			"register - %q $login$ $password$ - registers on the server with entered credentials\n",
 			commandHelp, commandLogin, commandRegister)
+		return s, nil
 
 	case includes(commandLogin, strings.ToLower(arguments[0])):
 		if len(arguments) != 3 {

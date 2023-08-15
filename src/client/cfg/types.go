@@ -22,7 +22,7 @@ func (t ConfigT) Save() {
 
 // BuildT contains build info and
 type BuildT struct {
-	BuildVersion string
-	BuildDate    string
-	BuildCommit  string
+	BuildVersion string `default:"N/A"`
+	BuildDate    string `default:"N/A"`
+	BuildCommit  string `default:"N/A"`
 }

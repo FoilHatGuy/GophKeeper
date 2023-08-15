@@ -14,6 +14,13 @@ const (
 )
 
 func main() {
+	log.SetFormatter(&log.TextFormatter{
+		ForceColors:            true,
+		ForceQuote:             false,
+		DisableLevelTruncation: false,
+		QuoteEmptyFields:       true,
+	})
+
 	config := cfg.New(
 		cfg.FromDefaults(),
 		cfg.FromEnv(),
@@ -24,13 +31,6 @@ func main() {
 			BuildCommit:  buildCommit,
 		}),
 	)
-
-	log.SetFormatter(&log.TextFormatter{
-		ForceColors:            true,
-		ForceQuote:             false,
-		DisableLevelTruncation: false,
-		QuoteEmptyFields:       true,
-	})
 	lvl, err := log.ParseLevel(config.Server.LoggingLevel)
 	if err != nil {
 		defaultConfig := cfg.New(

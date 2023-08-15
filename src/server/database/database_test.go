@@ -245,6 +245,6 @@ func (s *DatabaseIntegrationTestSuite) TestText() {
 	s.Assert().Equal(dataID, head[0].ID)
 }
 
-func TestExampleTestSuite(t *testing.T) {
+func TestDatabaseIntegration(t *testing.T) {
 	suite.Run(t, new(DatabaseIntegrationTestSuite))
 }

@@ -45,6 +45,7 @@ func (s *stateMenuType) execute(ctx context.Context, command string) (resultStat
 			commandHelp,
 			commandOpen, commandCred, commandCard, commandText, commandFile,
 			commandConfig)
+		return s, nil
 
 	case includes(commandOpen, strings.ToLower(arguments[0])):
 		if len(arguments) != 2 {

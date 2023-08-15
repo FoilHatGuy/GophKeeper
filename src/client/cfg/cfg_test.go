@@ -23,7 +23,7 @@ func (s *CfgTestSuite) TestNew() {
 
 func (s *CfgTestSuite) TestNewFromDefaults() {
 	config := New(FromDefaults())
-	s.Assert().Nil(config.Build)
+	s.Assert().NotNil(config.Build)
 
 	s.Assert().Equal(reflect.TypeOf(*config).Field(0).Tag.Get("default"), config.SecretPath)
 	s.Assert().Equal(reflect.TypeOf(*config).Field(1).Tag.Get("default"), config.ServerAddress)
@@ -105,6 +105,6 @@ func (s *CfgTestSuite) TestNewWithBuild() {
 	s.Assert().Equal(build, config.Build)
 }
 
-func TestCfg(t *testing.T) {
+func TestClientConfigUnit(t *testing.T) {
 	suite.Run(t, new(CfgTestSuite))
 }

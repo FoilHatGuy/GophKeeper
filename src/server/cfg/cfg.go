@@ -5,9 +5,11 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/sakirsensoy/genv/dotenv"
+	log "github.com/sirupsen/logrus"
+
 	defaults "github.com/mcuadros/go-defaults"
 	"github.com/sakirsensoy/genv"
-	_ "github.com/sakirsensoy/genv/dotenv/autoload" // import for automatic loading of .env config
 )
 
 // ConfigOption
@@ -70,6 +72,16 @@ func FromJSON() ConfigOption {
 // Overwrites existing values with values from environment (if present)
 func FromEnv() ConfigOption {
 	return func(c *ConfigT) *ConfigT {
+		err := dotenv.Load("./final.env")
+		if err != nil {
+			log.Error("final.env file nonexistent")
+		}
+		baseFile := os.ExpandEnv(genv.Key("SERVER_ADDRESS").Default("./.env").String())
+		err = dotenv.Load(baseFile)
+		if err != nil {
+			log.Error(baseFile + " file nonexistent")
+		}
+
 		c = &ConfigT{
 			Server: &ServerT{
 				Address:      os.ExpandEnv(genv.Key("SERVER_ADDRESS").Default(c.Server.Address).String()),

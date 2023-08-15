@@ -48,6 +48,10 @@ func New(opts ...ConfigOption) *ConfigT {
 func FromDefaults() ConfigOption {
 	return func(c *ConfigT) *ConfigT {
 		defaults.SetDefaults(c)
+		if c.Build == nil {
+			c.Build = &BuildT{}
+			defaults.SetDefaults(c.Build)
+		}
 		return c
 	}
 }

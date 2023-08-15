@@ -107,6 +107,6 @@ func (s *HashTestSuite) TestBadBase64Encode() {
 	s.Assert().False(ok)
 }
 
-func TestExampleTestSuite(t *testing.T) {
+func TestHashingUnit(t *testing.T) {
 	suite.Run(t, new(HashTestSuite))
 }

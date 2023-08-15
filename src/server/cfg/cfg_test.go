@@ -126,6 +126,6 @@ func (s *ConfigTestSuite) TestFromJSONFile() {
 	) // cause an error
 }
 
-func TestExampleTestSuite(t *testing.T) {
+func TestServerConfigUnit(t *testing.T) {
 	suite.Run(t, new(ConfigTestSuite))
 }

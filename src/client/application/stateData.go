@@ -4,11 +4,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	GRPCClient "gophKeeper/src/client/grpcClient"
 	"strconv"
 	"strings"
 
 	"gophKeeper/src/client/cfg"
+	GRPCClient "gophKeeper/src/client/grpcClient"
 )
 
 type (
@@ -154,6 +154,7 @@ func (s *stateDataType) execute(ctx context.Context, command string) (resultStat
 			commandAdd,
 			commandHead,
 			commandBack)
+		return s, nil
 
 	case includes(commandAdd, strings.ToLower(arguments[0])):
 		s.inputField = 0
@@ -206,7 +207,7 @@ func (s *stateDataType) execute(ctx context.Context, command string) (resultStat
 	case includes(commandBack, strings.ToLower(arguments[0])):
 		return s.app.cat[stateMenu], nil
 	}
-	//s.show(ctx)
+	// s.show(ctx)
 	return s, ErrUnrecognizedCommand
 }
 

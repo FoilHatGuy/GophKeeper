@@ -10,3 +10,14 @@ services:
       - /usr/local/pg_data:/var/lib/postgresql/data
     ports: # dev
       - "${PGPORT}:${PGPORT}"
+
+  server:
+    container_name: GophKeeper
+    restart: unless-stopped
+    build:
+      context: .
+    env_file:
+      - prod.env
+      - final.env
+    ports:
+      - "9999:9999"

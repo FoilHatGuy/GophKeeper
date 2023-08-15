@@ -5,19 +5,19 @@ package app
 import (
 	"context"
 	"errors"
+	"testing"
+
 	"github.com/google/uuid"
+	"github.com/stretchr/testify/suite"
 	"go.uber.org/mock/gomock"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
-	"gophKeeper/src/server/database"
-	"gophKeeper/src/server/passwords"
-	"testing"
-
-	"github.com/stretchr/testify/suite"
 
 	pb "gophKeeper/src/pb"
+	"gophKeeper/src/server/database"
+	"gophKeeper/src/server/passwords"
 )
 
 var dbErr = errors.New("db err")
@@ -39,8 +39,8 @@ func (s *gRPCServerTestSuite) SetupSuite() {
 	s.serverAuth = &AuthGRPC{
 		db: s.db,
 	}
-
 }
+
 func (s *gRPCServerTestSuite) TestPing() {
 	_, err := s.serverAuth.Ping(s.ctx, &pb.Empty{})
 	s.Assert().NoError(err)
@@ -69,7 +69,6 @@ func (s *gRPCServerTestSuite) TestAuthRegister() {
 	s.Assert().Error(err)
 	stat, _ := status.FromError(err)
 	s.Assert().Equal(codes.Internal, stat.Code())
-
 }
 
 func (s *gRPCServerTestSuite) TestAuthLogin() {
@@ -77,7 +76,7 @@ func (s *gRPCServerTestSuite) TestAuthLogin() {
 		login = "login"
 		pass  = "password"
 	)
-	var hashed, _ = passwords.HashPassword(pass)
+	hashed, _ := passwords.HashPassword(pass)
 
 	// login
 	uid := uuid.NewString()
@@ -137,7 +136,6 @@ func (s *gRPCServerTestSuite) TestAuthLogin() {
 	s.Assert().Error(err)
 	stat, _ = status.FromError(err)
 	s.Assert().Equal(codes.Internal, stat.Code())
-
 }
 
 func (s *gRPCServerTestSuite) TestAuthKickOtherSession() {
@@ -145,7 +143,7 @@ func (s *gRPCServerTestSuite) TestAuthKickOtherSession() {
 		login = "login"
 		pass  = "password"
 	)
-	var hashed, _ = passwords.HashPassword(pass)
+	hashed, _ := passwords.HashPassword(pass)
 
 	// login with kick
 	uid := uuid.NewString()
@@ -451,6 +449,6 @@ func (s *gRPCServerTestSuite) TestLoadCreditCard() {
 	s.Assert().Nil(resp)
 }
 
-func TestExampleTestSuite(t *testing.T) {
+func TestGRPCServerUnit(t *testing.T) {
 	suite.Run(t, new(gRPCServerTestSuite))
 }

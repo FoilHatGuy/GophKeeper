@@ -5,11 +5,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
+	"os"
+
 	"gophKeeper/src/client/cfg"
 	"gophKeeper/src/client/encoding"
 	GRPCClient "gophKeeper/src/client/grpcClient"
-	"io"
-	"os"
 )
 
 const (
@@ -63,7 +64,7 @@ func newApplication(config *cfg.ConfigT, grpc GRPCClient.GRPCWrapper, callback f
 		stateCreds:  newCredsState(app, config),
 		stateCard:   newCardState(app, config),
 		stateText:   newTextState(app, config),
-		//stateFile:   newFileState(app, config),
+		// stateFile:   newFileState(app, config),
 	}
 	app.state = catalogue[stateLogin]
 	app.cat = catalogue
@@ -79,12 +80,12 @@ const (
 )
 
 func (a *Application) Run(input io.Reader) {
-
-	scanner := bufio.NewScanner(input)
-	fmt.Println("app is ready to accept commands!")
-	for {
+	doPrint := func() {
 		fmt.Printf("%s%s:%s ", colorBlue, a.state.getName(), colorNone)
-		scanner.Scan()
+	}
+	scanner := bufio.NewScanner(input)
+	doPrint()
+	for scanner.Scan() {
 		ctx := context.Background()
 		err := a.Execute(ctx, scanner.Text())
 		if errors.Is(err, ErrExit) {
@@ -93,9 +94,12 @@ func (a *Application) Run(input io.Reader) {
 		if err != nil {
 			fmt.Println(colorRed, err, colorNone)
 		}
+		doPrint()
 	}
 	err := a.closeFunc()
-	panic(err)
+	if err != nil {
+		panic(err)
+	}
 }
 
 func New(config *cfg.ConfigT) {
@@ -125,9 +129,6 @@ func (a *Application) Execute(ctx context.Context, command string) error {
 		}
 	}
 	a.state = newState
-	if err != nil {
-		return fmt.Errorf("application error: %w", err)
-	}
 	return nil
 }
 

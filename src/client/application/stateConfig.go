@@ -43,6 +43,7 @@ func (s *stateConfigType) execute(ctx context.Context, command string) (resultSt
 			commandAbout,
 			commandList,
 			commandMod)
+		return s, nil
 
 	case includes(commandBack, strings.ToLower(arguments[0])):
 		return s.app.cat[stateMenu], nil
@@ -58,7 +59,7 @@ func (s *stateConfigType) execute(ctx context.Context, command string) (resultSt
 		fmt.Print(colorGreen +
 			"\tGophKeeper  v" + s.app.config.Build.BuildVersion +
 			colorYellow +
-			"\n\tcommit    #" + s.app.config.Build.BuildCommit +
+			"\n\tcommit      #" + s.app.config.Build.BuildCommit +
 			"\n\tbuild date: " + s.app.config.Build.BuildDate +
 			colorNone + "\n",
 		)

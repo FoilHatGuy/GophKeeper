@@ -18,6 +18,6 @@ func (s *DatabaseIntegrationTestSuite) SetupSuite() {
 func (s *DatabaseIntegrationTestSuite) TestNew() {
 }
 
-func TestExampleTestSuite(t *testing.T) {
+func TestGrPCClientUnit(t *testing.T) {
 	suite.Run(t, new(DatabaseIntegrationTestSuite))
 }
