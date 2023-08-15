@@ -49,7 +49,7 @@ func RunGRPCServer(config *cfg.ConfigT, logger *log.Logger) {
 
 	server := grpc.NewServer(
 		grpc.ChainUnaryInterceptor(
-			Async,
+			// Async,
 			grpc_ctxtags.UnaryServerInterceptor(grpc_ctxtags.WithFieldExtractor(grpc_ctxtags.CodeGenRequestFieldExtractor)),
 			grpc_logrus.UnaryServerInterceptor(logrusEntry, opts...),
 			backend.Authenticate,
@@ -64,7 +64,7 @@ func RunGRPCServer(config *cfg.ConfigT, logger *log.Logger) {
 	pb.RegisterAuthServer(server, &auth)
 	pb.RegisterGophKeeperServer(server, &backend)
 
-	lis, err := net.Listen("tcp", config.Server.AddressGRPC)
+	lis, err := net.Listen("tcp", config.Server.Address)
 	if err != nil {
 		log.Fatalf("failed to listen: %v", err)
 	}
@@ -78,6 +78,12 @@ func RunGRPCServer(config *cfg.ConfigT, logger *log.Logger) {
 type AuthGRPC struct {
 	pb.UnimplementedAuthServer
 	db database.StorageController
+}
+
+// Ping checks server activity
+func (s *AuthGRPC) Ping(_ context.Context, _ *pb.Empty) (out *pb.Empty, errRPC error) {
+	out = &pb.Empty{}
+	return
 }
 
 // Login
@@ -144,6 +150,7 @@ func (s *AuthGRPC) Register(ctx context.Context, in *pb.Credentials) (out *pb.Em
 	login := in.GetLogin()
 	password := in.GetPassword()
 	hashed, err := passwords.HashPassword(password)
+	// untestable part, rand.Reader needs to return error
 	if err != nil {
 		log.Error(err)
 		return nil, status.Errorf(codes.Internal, "password is incorrect")
@@ -166,20 +173,20 @@ type ServerGRPC struct {
 }
 
 // Async launches each handle as a goroutine to prevent panic from stopping the entire server
-func Async(
-	ctx context.Context,
-	req interface{},
-	_ *grpc.UnaryServerInfo,
-	handler grpc.UnaryHandler,
-) (response interface{}, errRPC error) {
-	c := make(chan bool)
-	go func() {
-		response, errRPC = handler(ctx, req)
-		c <- true
-	}()
-	<-c
-	return
-}
+// func Async(
+// 	ctx context.Context,
+// 	req interface{},
+// 	_ *grpc.UnaryServerInfo,
+// 	handler grpc.UnaryHandler,
+// ) (response interface{}, errRPC error) {
+// 	c := make(chan bool)
+// 	go func() {
+// 		response, errRPC = handler(ctx, req)
+// 		c <- true
+// 	}()
+// 	<-c
+// 	return
+// }
 
 // Authenticate manages sid cookies.
 func (s *ServerGRPC) Authenticate(
@@ -217,12 +224,6 @@ func (s *ServerGRPC) Authenticate(
 	return handler(ctx, req)
 }
 
-// Ping checks server+database activity
-func (s *ServerGRPC) Ping(_ context.Context, _ *pb.Empty) (out *pb.Empty, errRPC error) {
-	out = &pb.Empty{}
-	return
-}
-
 // GetCategoryHead returns data about a category
 func (s *ServerGRPC) GetCategoryHead(
 	ctx context.Context,
@@ -242,19 +243,19 @@ func (s *ServerGRPC) GetCategoryHead(
 		head, err = s.db.GetCredentialsHead(ctx, uid)
 
 	case pb.Category_CATEGORY_TEXT:
-		//nolint:godox
 		head, err = s.db.GetTextHead(ctx, uid)
+
 	case pb.Category_CATEGORY_CARD:
 		head, err = s.db.GetCardHead(ctx, uid)
+
 		// case pb.Category_CATEGORY_FILE: // todo: change to correct category
 		//	head, err = s.db.GetFileHead(ctx, uid)
+	default:
+		return nil, status.Errorf(codes.Internal, "database error")
 	}
 
-	if err != nil && !errors.Is(err, database.ErrNotFound) {
-		return nil, status.Errorf(codes.Internal, "login or password incorrect")
-	}
-	if errors.Is(err, database.ErrNotFound) {
-		return &pb.CategoryHead_DTO{}, nil
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "database error")
 	}
 
 	newInfo := make([]*pb.DataInfo, 0, len(head))
@@ -271,9 +272,9 @@ func (s *ServerGRPC) GetCategoryHead(
 
 // Credentials section
 
-// StoreCredentials
+// StoreCredData
 // Ping server+database activity
-func (s *ServerGRPC) StoreCredentials(ctx context.Context, in *pb.SecureData_DTO) (out *pb.DataID_DTO, errRPC error) {
+func (s *ServerGRPC) StoreCredData(ctx context.Context, in *pb.SecureData_DTO) (out *pb.DataID_DTO, errRPC error) {
 	data := in.GetData()
 	meta := in.GetMetadata()
 	dataID := uuid.NewString()
@@ -293,15 +294,15 @@ func (s *ServerGRPC) StoreCredentials(ctx context.Context, in *pb.SecureData_DTO
 	return
 }
 
-// LoadCredentials
+// LoadCredData
 // Ping server+database activity
-func (s *ServerGRPC) LoadCredentials(ctx context.Context, in *pb.DataID_DTO) (out *pb.SecureData_DTO, errRPC error) {
-	sid := in.GetID()
+func (s *ServerGRPC) LoadCredData(ctx context.Context, in *pb.DataID_DTO) (out *pb.SecureData_DTO, errRPC error) {
+	dataID := in.GetID()
 
 	uidTL := ctx.Value(uidMetaKey)
 	uid := uidTL.(string)
 
-	meta, data, err := s.db.GetCredentials(ctx, uid, sid)
+	meta, data, err := s.db.GetCredentials(ctx, uid, dataID)
 	if err != nil {
 		log.Error(err)
 		return nil, status.Errorf(codes.Internal, "database error")
@@ -315,9 +316,9 @@ func (s *ServerGRPC) LoadCredentials(ctx context.Context, in *pb.DataID_DTO) (ou
 
 // Text section
 
-// StoreText
+// StoreTextData
 // Ping server+database activity
-func (s *ServerGRPC) StoreText(ctx context.Context, in *pb.SecureData_DTO) (out *pb.DataID_DTO, errRPC error) {
+func (s *ServerGRPC) StoreTextData(ctx context.Context, in *pb.SecureData_DTO) (out *pb.DataID_DTO, errRPC error) {
 	data := in.GetData()
 	meta := in.GetMetadata()
 	dataID := uuid.NewString()
@@ -337,15 +338,15 @@ func (s *ServerGRPC) StoreText(ctx context.Context, in *pb.SecureData_DTO) (out 
 	return
 }
 
-// LoadText
+// LoadTextData
 // Ping server+database activity
-func (s *ServerGRPC) LoadText(ctx context.Context, in *pb.DataID_DTO) (out *pb.SecureData_DTO, errRPC error) {
-	sid := in.GetID()
+func (s *ServerGRPC) LoadTextData(ctx context.Context, in *pb.DataID_DTO) (out *pb.SecureData_DTO, errRPC error) {
+	dataID := in.GetID()
 
 	uidTL := ctx.Value(uidMetaKey)
 	uid := uidTL.(string)
 
-	meta, data, err := s.db.GetText(ctx, uid, sid)
+	meta, data, err := s.db.GetText(ctx, uid, dataID)
 	if err != nil {
 		log.Error(err)
 		return nil, status.Errorf(codes.Internal, "database error")
@@ -359,9 +360,9 @@ func (s *ServerGRPC) LoadText(ctx context.Context, in *pb.DataID_DTO) (out *pb.S
 
 // Card section
 
-// StoreCard
+// StoreCardData
 // Ping server+database activity
-func (s *ServerGRPC) StoreCard(ctx context.Context, in *pb.SecureData_DTO) (out *pb.DataID_DTO, errRPC error) {
+func (s *ServerGRPC) StoreCardData(ctx context.Context, in *pb.SecureData_DTO) (out *pb.DataID_DTO, errRPC error) {
 	data := in.GetData()
 	meta := in.GetMetadata()
 	dataID := uuid.NewString()
@@ -381,15 +382,15 @@ func (s *ServerGRPC) StoreCard(ctx context.Context, in *pb.SecureData_DTO) (out 
 	return
 }
 
-// LoadCard
+// LoadCardData
 // Ping server+database activity
-func (s *ServerGRPC) LoadCard(ctx context.Context, in *pb.DataID_DTO) (out *pb.SecureData_DTO, errRPC error) {
-	sid := in.GetID()
+func (s *ServerGRPC) LoadCardData(ctx context.Context, in *pb.DataID_DTO) (out *pb.SecureData_DTO, errRPC error) {
+	dataID := in.GetID()
 
 	uidTL := ctx.Value(uidMetaKey)
 	uid := uidTL.(string)
 
-	meta, data, err := s.db.GetCard(ctx, uid, sid)
+	meta, data, err := s.db.GetCard(ctx, uid, dataID)
 	if err != nil {
 		log.Error(err)
 		return nil, status.Errorf(codes.Internal, "database error")

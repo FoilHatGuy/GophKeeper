@@ -22,14 +22,15 @@ const _ = grpc.SupportPackageIsVersion7
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type GophKeeperClient interface {
-	Ping(ctx context.Context, in *Empty, opts ...grpc.CallOption) (*Empty, error)
 	GetCategoryHead(ctx context.Context, in *CategoryType_DTO, opts ...grpc.CallOption) (*CategoryHead_DTO, error)
-	StoreCredentials(ctx context.Context, in *SecureData_DTO, opts ...grpc.CallOption) (*DataID_DTO, error)
-	LoadCredentials(ctx context.Context, in *DataID_DTO, opts ...grpc.CallOption) (*SecureData_DTO, error)
+	StoreCredData(ctx context.Context, in *SecureData_DTO, opts ...grpc.CallOption) (*DataID_DTO, error)
+	LoadCredData(ctx context.Context, in *DataID_DTO, opts ...grpc.CallOption) (*SecureData_DTO, error)
 	StoreTextData(ctx context.Context, in *SecureData_DTO, opts ...grpc.CallOption) (*DataID_DTO, error)
 	LoadTextData(ctx context.Context, in *DataID_DTO, opts ...grpc.CallOption) (*SecureData_DTO, error)
-	StoreCreditCard(ctx context.Context, in *SecureData_DTO, opts ...grpc.CallOption) (*DataID_DTO, error)
-	LoadCreditCard(ctx context.Context, in *DataID_DTO, opts ...grpc.CallOption) (*SecureData_DTO, error)
+	StoreCardData(ctx context.Context, in *SecureData_DTO, opts ...grpc.CallOption) (*DataID_DTO, error)
+	LoadCardData(ctx context.Context, in *DataID_DTO, opts ...grpc.CallOption) (*SecureData_DTO, error)
+	StoreFile(ctx context.Context, in *SecureData_DTO, opts ...grpc.CallOption) (*DataID_DTO, error)
+	LoadFile(ctx context.Context, in *DataID_DTO, opts ...grpc.CallOption) (*SecureData_DTO, error)
 }
 
 type gophKeeperClient struct {
@@ -38,15 +39,6 @@ type gophKeeperClient struct {
 
 func NewGophKeeperClient(cc grpc.ClientConnInterface) GophKeeperClient {
 	return &gophKeeperClient{cc}
-}
-
-func (c *gophKeeperClient) Ping(ctx context.Context, in *Empty, opts ...grpc.CallOption) (*Empty, error) {
-	out := new(Empty)
-	err := c.cc.Invoke(ctx, "/base.GophKeeper/Ping", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
 }
 
 func (c *gophKeeperClient) GetCategoryHead(ctx context.Context, in *CategoryType_DTO, opts ...grpc.CallOption) (*CategoryHead_DTO, error) {
@@ -58,18 +50,18 @@ func (c *gophKeeperClient) GetCategoryHead(ctx context.Context, in *CategoryType
 	return out, nil
 }
 
-func (c *gophKeeperClient) StoreCredentials(ctx context.Context, in *SecureData_DTO, opts ...grpc.CallOption) (*DataID_DTO, error) {
+func (c *gophKeeperClient) StoreCredData(ctx context.Context, in *SecureData_DTO, opts ...grpc.CallOption) (*DataID_DTO, error) {
 	out := new(DataID_DTO)
-	err := c.cc.Invoke(ctx, "/base.GophKeeper/StoreCredentials", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/base.GophKeeper/StoreCredData", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *gophKeeperClient) LoadCredentials(ctx context.Context, in *DataID_DTO, opts ...grpc.CallOption) (*SecureData_DTO, error) {
+func (c *gophKeeperClient) LoadCredData(ctx context.Context, in *DataID_DTO, opts ...grpc.CallOption) (*SecureData_DTO, error) {
 	out := new(SecureData_DTO)
-	err := c.cc.Invoke(ctx, "/base.GophKeeper/LoadCredentials", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/base.GophKeeper/LoadCredData", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -94,18 +86,36 @@ func (c *gophKeeperClient) LoadTextData(ctx context.Context, in *DataID_DTO, opt
 	return out, nil
 }
 
-func (c *gophKeeperClient) StoreCreditCard(ctx context.Context, in *SecureData_DTO, opts ...grpc.CallOption) (*DataID_DTO, error) {
+func (c *gophKeeperClient) StoreCardData(ctx context.Context, in *SecureData_DTO, opts ...grpc.CallOption) (*DataID_DTO, error) {
 	out := new(DataID_DTO)
-	err := c.cc.Invoke(ctx, "/base.GophKeeper/StoreCreditCard", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/base.GophKeeper/StoreCardData", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *gophKeeperClient) LoadCreditCard(ctx context.Context, in *DataID_DTO, opts ...grpc.CallOption) (*SecureData_DTO, error) {
+func (c *gophKeeperClient) LoadCardData(ctx context.Context, in *DataID_DTO, opts ...grpc.CallOption) (*SecureData_DTO, error) {
 	out := new(SecureData_DTO)
-	err := c.cc.Invoke(ctx, "/base.GophKeeper/LoadCreditCard", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/base.GophKeeper/LoadCardData", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *gophKeeperClient) StoreFile(ctx context.Context, in *SecureData_DTO, opts ...grpc.CallOption) (*DataID_DTO, error) {
+	out := new(DataID_DTO)
+	err := c.cc.Invoke(ctx, "/base.GophKeeper/StoreFile", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *gophKeeperClient) LoadFile(ctx context.Context, in *DataID_DTO, opts ...grpc.CallOption) (*SecureData_DTO, error) {
+	out := new(SecureData_DTO)
+	err := c.cc.Invoke(ctx, "/base.GophKeeper/LoadFile", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -116,14 +126,15 @@ func (c *gophKeeperClient) LoadCreditCard(ctx context.Context, in *DataID_DTO, o
 // All implementations must embed UnimplementedGophKeeperServer
 // for forward compatibility
 type GophKeeperServer interface {
-	Ping(context.Context, *Empty) (*Empty, error)
 	GetCategoryHead(context.Context, *CategoryType_DTO) (*CategoryHead_DTO, error)
-	StoreCredentials(context.Context, *SecureData_DTO) (*DataID_DTO, error)
-	LoadCredentials(context.Context, *DataID_DTO) (*SecureData_DTO, error)
+	StoreCredData(context.Context, *SecureData_DTO) (*DataID_DTO, error)
+	LoadCredData(context.Context, *DataID_DTO) (*SecureData_DTO, error)
 	StoreTextData(context.Context, *SecureData_DTO) (*DataID_DTO, error)
 	LoadTextData(context.Context, *DataID_DTO) (*SecureData_DTO, error)
-	StoreCreditCard(context.Context, *SecureData_DTO) (*DataID_DTO, error)
-	LoadCreditCard(context.Context, *DataID_DTO) (*SecureData_DTO, error)
+	StoreCardData(context.Context, *SecureData_DTO) (*DataID_DTO, error)
+	LoadCardData(context.Context, *DataID_DTO) (*SecureData_DTO, error)
+	StoreFile(context.Context, *SecureData_DTO) (*DataID_DTO, error)
+	LoadFile(context.Context, *DataID_DTO) (*SecureData_DTO, error)
 	mustEmbedUnimplementedGophKeeperServer()
 }
 
@@ -131,17 +142,14 @@ type GophKeeperServer interface {
 type UnimplementedGophKeeperServer struct {
 }
 
-func (UnimplementedGophKeeperServer) Ping(context.Context, *Empty) (*Empty, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method Ping not implemented")
-}
 func (UnimplementedGophKeeperServer) GetCategoryHead(context.Context, *CategoryType_DTO) (*CategoryHead_DTO, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetCategoryHead not implemented")
 }
-func (UnimplementedGophKeeperServer) StoreCredentials(context.Context, *SecureData_DTO) (*DataID_DTO, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method StoreCredentials not implemented")
+func (UnimplementedGophKeeperServer) StoreCredData(context.Context, *SecureData_DTO) (*DataID_DTO, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method StoreCredData not implemented")
 }
-func (UnimplementedGophKeeperServer) LoadCredentials(context.Context, *DataID_DTO) (*SecureData_DTO, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method LoadCredentials not implemented")
+func (UnimplementedGophKeeperServer) LoadCredData(context.Context, *DataID_DTO) (*SecureData_DTO, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method LoadCredData not implemented")
 }
 func (UnimplementedGophKeeperServer) StoreTextData(context.Context, *SecureData_DTO) (*DataID_DTO, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method StoreTextData not implemented")
@@ -149,11 +157,17 @@ func (UnimplementedGophKeeperServer) StoreTextData(context.Context, *SecureData_
 func (UnimplementedGophKeeperServer) LoadTextData(context.Context, *DataID_DTO) (*SecureData_DTO, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method LoadTextData not implemented")
 }
-func (UnimplementedGophKeeperServer) StoreCreditCard(context.Context, *SecureData_DTO) (*DataID_DTO, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method StoreCreditCard not implemented")
+func (UnimplementedGophKeeperServer) StoreCardData(context.Context, *SecureData_DTO) (*DataID_DTO, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method StoreCardData not implemented")
 }
-func (UnimplementedGophKeeperServer) LoadCreditCard(context.Context, *DataID_DTO) (*SecureData_DTO, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method LoadCreditCard not implemented")
+func (UnimplementedGophKeeperServer) LoadCardData(context.Context, *DataID_DTO) (*SecureData_DTO, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method LoadCardData not implemented")
+}
+func (UnimplementedGophKeeperServer) StoreFile(context.Context, *SecureData_DTO) (*DataID_DTO, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method StoreFile not implemented")
+}
+func (UnimplementedGophKeeperServer) LoadFile(context.Context, *DataID_DTO) (*SecureData_DTO, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method LoadFile not implemented")
 }
 func (UnimplementedGophKeeperServer) mustEmbedUnimplementedGophKeeperServer() {}
 
@@ -166,24 +180,6 @@ type UnsafeGophKeeperServer interface {
 
 func RegisterGophKeeperServer(s grpc.ServiceRegistrar, srv GophKeeperServer) {
 	s.RegisterService(&GophKeeper_ServiceDesc, srv)
-}
-
-func _GophKeeper_Ping_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(Empty)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(GophKeeperServer).Ping(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/base.GophKeeper/Ping",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(GophKeeperServer).Ping(ctx, req.(*Empty))
-	}
-	return interceptor(ctx, in, info, handler)
 }
 
 func _GophKeeper_GetCategoryHead_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
@@ -204,38 +200,38 @@ func _GophKeeper_GetCategoryHead_Handler(srv interface{}, ctx context.Context, d
 	return interceptor(ctx, in, info, handler)
 }
 
-func _GophKeeper_StoreCredentials_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _GophKeeper_StoreCredData_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(SecureData_DTO)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(GophKeeperServer).StoreCredentials(ctx, in)
+		return srv.(GophKeeperServer).StoreCredData(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/base.GophKeeper/StoreCredentials",
+		FullMethod: "/base.GophKeeper/StoreCredData",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(GophKeeperServer).StoreCredentials(ctx, req.(*SecureData_DTO))
+		return srv.(GophKeeperServer).StoreCredData(ctx, req.(*SecureData_DTO))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _GophKeeper_LoadCredentials_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _GophKeeper_LoadCredData_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(DataID_DTO)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(GophKeeperServer).LoadCredentials(ctx, in)
+		return srv.(GophKeeperServer).LoadCredData(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/base.GophKeeper/LoadCredentials",
+		FullMethod: "/base.GophKeeper/LoadCredData",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(GophKeeperServer).LoadCredentials(ctx, req.(*DataID_DTO))
+		return srv.(GophKeeperServer).LoadCredData(ctx, req.(*DataID_DTO))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -276,38 +272,74 @@ func _GophKeeper_LoadTextData_Handler(srv interface{}, ctx context.Context, dec 
 	return interceptor(ctx, in, info, handler)
 }
 
-func _GophKeeper_StoreCreditCard_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _GophKeeper_StoreCardData_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(SecureData_DTO)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(GophKeeperServer).StoreCreditCard(ctx, in)
+		return srv.(GophKeeperServer).StoreCardData(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/base.GophKeeper/StoreCreditCard",
+		FullMethod: "/base.GophKeeper/StoreCardData",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(GophKeeperServer).StoreCreditCard(ctx, req.(*SecureData_DTO))
+		return srv.(GophKeeperServer).StoreCardData(ctx, req.(*SecureData_DTO))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _GophKeeper_LoadCreditCard_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _GophKeeper_LoadCardData_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(DataID_DTO)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(GophKeeperServer).LoadCreditCard(ctx, in)
+		return srv.(GophKeeperServer).LoadCardData(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/base.GophKeeper/LoadCreditCard",
+		FullMethod: "/base.GophKeeper/LoadCardData",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(GophKeeperServer).LoadCreditCard(ctx, req.(*DataID_DTO))
+		return srv.(GophKeeperServer).LoadCardData(ctx, req.(*DataID_DTO))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _GophKeeper_StoreFile_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SecureData_DTO)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(GophKeeperServer).StoreFile(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/base.GophKeeper/StoreFile",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(GophKeeperServer).StoreFile(ctx, req.(*SecureData_DTO))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _GophKeeper_LoadFile_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DataID_DTO)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(GophKeeperServer).LoadFile(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/base.GophKeeper/LoadFile",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(GophKeeperServer).LoadFile(ctx, req.(*DataID_DTO))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -320,20 +352,16 @@ var GophKeeper_ServiceDesc = grpc.ServiceDesc{
 	HandlerType: (*GophKeeperServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
-			MethodName: "Ping",
-			Handler:    _GophKeeper_Ping_Handler,
-		},
-		{
 			MethodName: "GetCategoryHead",
 			Handler:    _GophKeeper_GetCategoryHead_Handler,
 		},
 		{
-			MethodName: "StoreCredentials",
-			Handler:    _GophKeeper_StoreCredentials_Handler,
+			MethodName: "StoreCredData",
+			Handler:    _GophKeeper_StoreCredData_Handler,
 		},
 		{
-			MethodName: "LoadCredentials",
-			Handler:    _GophKeeper_LoadCredentials_Handler,
+			MethodName: "LoadCredData",
+			Handler:    _GophKeeper_LoadCredData_Handler,
 		},
 		{
 			MethodName: "StoreTextData",
@@ -344,12 +372,20 @@ var GophKeeper_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _GophKeeper_LoadTextData_Handler,
 		},
 		{
-			MethodName: "StoreCreditCard",
-			Handler:    _GophKeeper_StoreCreditCard_Handler,
+			MethodName: "StoreCardData",
+			Handler:    _GophKeeper_StoreCardData_Handler,
 		},
 		{
-			MethodName: "LoadCreditCard",
-			Handler:    _GophKeeper_LoadCreditCard_Handler,
+			MethodName: "LoadCardData",
+			Handler:    _GophKeeper_LoadCardData_Handler,
+		},
+		{
+			MethodName: "StoreFile",
+			Handler:    _GophKeeper_StoreFile_Handler,
+		},
+		{
+			MethodName: "LoadFile",
+			Handler:    _GophKeeper_LoadFile_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
@@ -360,6 +396,7 @@ var GophKeeper_ServiceDesc = grpc.ServiceDesc{
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type AuthClient interface {
+	Ping(ctx context.Context, in *Empty, opts ...grpc.CallOption) (*Empty, error)
 	Login(ctx context.Context, in *Credentials, opts ...grpc.CallOption) (*SessionID_DTO, error)
 	KickOtherSession(ctx context.Context, in *Credentials, opts ...grpc.CallOption) (*SessionID_DTO, error)
 	Register(ctx context.Context, in *Credentials, opts ...grpc.CallOption) (*Empty, error)
@@ -371,6 +408,15 @@ type authClient struct {
 
 func NewAuthClient(cc grpc.ClientConnInterface) AuthClient {
 	return &authClient{cc}
+}
+
+func (c *authClient) Ping(ctx context.Context, in *Empty, opts ...grpc.CallOption) (*Empty, error) {
+	out := new(Empty)
+	err := c.cc.Invoke(ctx, "/base.Auth/Ping", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
 }
 
 func (c *authClient) Login(ctx context.Context, in *Credentials, opts ...grpc.CallOption) (*SessionID_DTO, error) {
@@ -404,6 +450,7 @@ func (c *authClient) Register(ctx context.Context, in *Credentials, opts ...grpc
 // All implementations must embed UnimplementedAuthServer
 // for forward compatibility
 type AuthServer interface {
+	Ping(context.Context, *Empty) (*Empty, error)
 	Login(context.Context, *Credentials) (*SessionID_DTO, error)
 	KickOtherSession(context.Context, *Credentials) (*SessionID_DTO, error)
 	Register(context.Context, *Credentials) (*Empty, error)
@@ -414,6 +461,9 @@ type AuthServer interface {
 type UnimplementedAuthServer struct {
 }
 
+func (UnimplementedAuthServer) Ping(context.Context, *Empty) (*Empty, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Ping not implemented")
+}
 func (UnimplementedAuthServer) Login(context.Context, *Credentials) (*SessionID_DTO, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Login not implemented")
 }
@@ -434,6 +484,24 @@ type UnsafeAuthServer interface {
 
 func RegisterAuthServer(s grpc.ServiceRegistrar, srv AuthServer) {
 	s.RegisterService(&Auth_ServiceDesc, srv)
+}
+
+func _Auth_Ping_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(Empty)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthServer).Ping(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/base.Auth/Ping",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthServer).Ping(ctx, req.(*Empty))
+	}
+	return interceptor(ctx, in, info, handler)
 }
 
 func _Auth_Login_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
@@ -497,6 +565,10 @@ var Auth_ServiceDesc = grpc.ServiceDesc{
 	ServiceName: "base.Auth",
 	HandlerType: (*AuthServer)(nil),
 	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "Ping",
+			Handler:    _Auth_Ping_Handler,
+		},
 		{
 			MethodName: "Login",
 			Handler:    _Auth_Login_Handler,

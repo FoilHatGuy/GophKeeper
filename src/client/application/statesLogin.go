@@ -12,16 +12,16 @@ import (
 )
 
 type stateLoginType struct {
-	stateName string
-	app       *Application
-	config    *cfg.ConfigT
+	stateGetName
+	app    *Application
+	config *cfg.ConfigT
 }
 
 func newLoginState(app *Application, config *cfg.ConfigT) state {
 	return &stateLoginType{
-		app:       app,
-		config:    config,
-		stateName: "Login view",
+		app:          app,
+		config:       config,
+		stateGetName: stateGetName{stateName: "Login view"},
 	}
 }
 
@@ -39,6 +39,7 @@ func (s *stateLoginType) execute(ctx context.Context, command string) (resultSta
 			"login    - %q $login$ $password$ - tries to log in with entered credentials\n"+
 			"register - %q $login$ $password$ - registers on the server with entered credentials\n",
 			commandHelp, commandLogin, commandRegister)
+		return s, nil
 
 	case includes(commandLogin, strings.ToLower(arguments[0])):
 		if len(arguments) != 3 {
@@ -55,9 +56,6 @@ func (s *stateLoginType) execute(ctx context.Context, command string) (resultSta
 			return s, fmt.Errorf("error occured during Register attempt. details: %w", err)
 		}
 		return s.login(ctx, arguments[1], arguments[2])
-	}
-	if err != nil {
-		return s, fmt.Errorf("login state unrecognized error: %w", err)
 	}
 	return s, ErrUnrecognizedCommand
 }
@@ -131,8 +129,4 @@ func (s *stateLoginType) saveSecret(login, password string) (outState state, err
 	}
 
 	return s.app.cat[stateMenu], nil
-}
-
-func (s *stateLoginType) getName() string {
-	return s.stateName
 }

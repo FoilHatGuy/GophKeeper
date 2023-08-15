@@ -2,3 +2,4 @@
 /.env
 /pg_data/
 /bin/
+/prod.env

@@ -8,26 +8,22 @@ import (
 )
 
 type stateModal struct {
-	app       *Application
-	config    *cfg.ConfigT
-	stateName string
-	prompt    string
-	execFunc  modalFunction
-}
-
-func (s *stateModal) getName() string {
-	return s.stateName
+	stateGetName
+	app      *Application
+	config   *cfg.ConfigT
+	prompt   string
+	execFunc modalFunction
 }
 
 type modalFunction func(ctx context.Context, command string) (state, error)
 
 func (a *Application) newModal(stateName, prompt string, execFunc modalFunction) (resultState *stateModal) {
 	return &stateModal{
-		app:       a,
-		config:    a.config,
-		stateName: stateName,
-		prompt:    prompt,
-		execFunc:  execFunc,
+		app:          a,
+		config:       a.config,
+		stateGetName: stateGetName{stateName: stateName},
+		prompt:       prompt,
+		execFunc:     execFunc,
 	}
 }
 

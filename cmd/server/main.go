@@ -14,18 +14,23 @@ const (
 )
 
 func main() {
-	config := cfg.New(
-		cfg.FromDefaults(),
-		cfg.FromEnv(),
-		cfg.FromJSON(),
-	)
-
 	log.SetFormatter(&log.TextFormatter{
 		ForceColors:            true,
 		ForceQuote:             false,
 		DisableLevelTruncation: false,
 		QuoteEmptyFields:       true,
 	})
+
+	config := cfg.New(
+		cfg.FromDefaults(),
+		cfg.FromEnv(),
+		cfg.FromJSON(),
+		cfg.WithBuild(&cfg.BuildT{
+			BuildVersion: buildVersion,
+			BuildDate:    buildDate,
+			BuildCommit:  buildCommit,
+		}),
+	)
 	lvl, err := log.ParseLevel(config.Server.LoggingLevel)
 	if err != nil {
 		defaultConfig := cfg.New(

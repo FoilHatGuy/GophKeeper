@@ -18,7 +18,13 @@ func main() {
 		cfg.FromDefaults(),
 		cfg.FromJSON(),
 		cfg.FromFlags(),
+		cfg.WithBuild(&cfg.BuildT{
+			BuildVersion: buildVersion,
+			BuildDate:    buildDate,
+			BuildCommit:  buildCommit,
+		}),
 	)
+	config.Save()
 	fmt.Printf("buildVersion\t= %q\n", buildVersion)
 	fmt.Printf("buildDate\t= %q\n", buildDate)
 	fmt.Printf("buildCommit\t= %q\n", buildCommit)

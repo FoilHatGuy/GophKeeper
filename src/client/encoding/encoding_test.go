@@ -40,6 +40,6 @@ func (s *HashTestSuite) TestWrongDecoder() {
 	s.Assert().ErrorIs(err, ErrWrongKey)
 }
 
-func TestExampleTestSuite(t *testing.T) {
+func TestBlockEncodingUnit(t *testing.T) {
 	suite.Run(t, new(HashTestSuite))
 }
