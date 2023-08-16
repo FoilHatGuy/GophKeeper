@@ -114,6 +114,21 @@ func (mr *MockGRPCWrapperMockRecorder) LoadCredData(ctx, dataID interface{}) *go
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "LoadCredData", reflect.TypeOf((*MockGRPCWrapper)(nil).LoadCredData), ctx, dataID)
 }
 
+// LoadFileData mocks base method.
+func (m *MockGRPCWrapper) LoadFileData(ctx context.Context, dataID string) ([]byte, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "LoadFileData", ctx, dataID)
+	ret0, _ := ret[0].([]byte)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// LoadFileData indicates an expected call of LoadFileData.
+func (mr *MockGRPCWrapperMockRecorder) LoadFileData(ctx, dataID interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "LoadFileData", reflect.TypeOf((*MockGRPCWrapper)(nil).LoadFileData), ctx, dataID)
+}
+
 // LoadTextData mocks base method.
 func (m *MockGRPCWrapper) LoadTextData(ctx context.Context, dataID string) ([]byte, error) {
 	m.ctrl.T.Helper()
@@ -201,6 +216,22 @@ func (m *MockGRPCWrapper) StoreCredData(ctx context.Context, data []byte, meta s
 func (mr *MockGRPCWrapperMockRecorder) StoreCredData(ctx, data, meta interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "StoreCredData", reflect.TypeOf((*MockGRPCWrapper)(nil).StoreCredData), ctx, data, meta)
+}
+
+// StoreFileData mocks base method.
+func (m *MockGRPCWrapper) StoreFileData(ctx context.Context, data []byte, meta string) (string, string, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "StoreFileData", ctx, data, meta)
+	ret0, _ := ret[0].(string)
+	ret1, _ := ret[1].(string)
+	ret2, _ := ret[2].(error)
+	return ret0, ret1, ret2
+}
+
+// StoreFileData indicates an expected call of StoreFileData.
+func (mr *MockGRPCWrapperMockRecorder) StoreFileData(ctx, data, meta interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "StoreFileData", reflect.TypeOf((*MockGRPCWrapper)(nil).StoreFileData), ctx, data, meta)
 }
 
 // StoreTextData mocks base method.

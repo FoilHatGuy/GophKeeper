@@ -22,6 +22,11 @@ func init() {
 	flag.StringVar(&serverAddress, "a", "", "server's address")
 }
 
+func (t ConfigT) Save() {
+	file, _ := json.MarshalIndent(t, "", "\t")
+	_ = os.WriteFile(t.ConfigPath, file, 0o600)
+}
+
 // ConfigOption
 // Various options that can be used in New() to set up configs
 type ConfigOption func(*ConfigT) *ConfigT

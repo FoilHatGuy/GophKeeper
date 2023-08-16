@@ -51,7 +51,6 @@ type SecureCard struct {
 type SecureFile struct {
 	gorm.Model
 	ID       string
-	Filename string
 	Metadata string
 	UID      string
 	User     User `gorm:"ForeignKey:UID"`

@@ -401,3 +401,47 @@ func (s *ServerGRPC) LoadCardData(ctx context.Context, in *pb.DataID_DTO) (out *
 	}
 	return
 }
+
+// File section
+
+// StoreFileData
+// Ping server+database activity
+func (s *ServerGRPC) StoreFileData(ctx context.Context, in *pb.SecureData_DTO) (out *pb.DataID_DTO, errRPC error) {
+	data := in.GetData()
+	meta := in.GetMetadata()
+	dataID := uuid.NewString()
+
+	uidTL := ctx.Value(uidMetaKey)
+	uid := uidTL.(string)
+
+	err := s.db.AddFile(ctx, uid, dataID, meta, data)
+	if err != nil {
+		log.Error(err)
+		return nil, status.Errorf(codes.Internal, "login or password incorrect")
+	}
+
+	out = &pb.DataID_DTO{
+		ID: dataID,
+	}
+	return
+}
+
+// LoadFileData
+// Ping server+database activity
+func (s *ServerGRPC) LoadFileData(ctx context.Context, in *pb.DataID_DTO) (out *pb.SecureData_DTO, errRPC error) {
+	dataID := in.GetID()
+
+	uidTL := ctx.Value(uidMetaKey)
+	uid := uidTL.(string)
+
+	meta, data, err := s.db.GetFile(ctx, uid, dataID)
+	if err != nil {
+		log.Error(err)
+		return nil, status.Errorf(codes.Internal, "database error")
+	}
+	out = &pb.SecureData_DTO{
+		Data:     data,
+		Metadata: meta,
+	}
+	return
+}

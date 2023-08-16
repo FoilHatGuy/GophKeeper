@@ -449,6 +449,56 @@ func (s *gRPCServerTestSuite) TestLoadCreditCard() {
 	s.Assert().Nil(resp)
 }
 
+func (s *gRPCServerTestSuite) TestStoreFileData() {
+	uid := uuid.NewString()
+	ctx := context.WithValue(s.ctx, uidMetaKey, uid)
+	const meta = "metadata"
+	data := []byte("some data")
+	var dataID string
+	s.db.EXPECT().AddFile(ctx, uid, gomock.Any(), meta, data).DoAndReturn(
+		func(_ context.Context, _, in, _ string, _ []byte) error {
+			dataID = in
+			return nil
+		},
+	)
+	resp, err := s.serverKeep.StoreFileData(ctx, &pb.SecureData_DTO{
+		Data:     data,
+		Metadata: meta,
+	})
+	s.Assert().NoError(err)
+	s.Assert().Equal(dataID, resp.ID)
+
+	s.db.EXPECT().AddFile(ctx, uid, gomock.Any(), meta, data).Return(dbErr)
+	resp, err = s.serverKeep.StoreFileData(ctx, &pb.SecureData_DTO{
+		Data:     data,
+		Metadata: meta,
+	})
+	s.Assert().Error(err)
+	stat, _ := status.FromError(err)
+	s.Assert().Equal(codes.Internal, stat.Code())
+	s.Assert().Nil(resp)
+}
+
+func (s *gRPCServerTestSuite) TestLoadFileData() {
+	uid := uuid.NewString()
+	ctx := context.WithValue(s.ctx, uidMetaKey, uid)
+	const meta = "metadata"
+	data := []byte("some data")
+	dataID := uuid.NewString()
+	s.db.EXPECT().GetFile(ctx, uid, dataID).Return(meta, data, nil)
+	resp, err := s.serverKeep.LoadFileData(ctx, &pb.DataID_DTO{ID: dataID})
+	s.Assert().NoError(err)
+	s.Assert().Equal(data, resp.Data)
+	s.Assert().Equal(meta, resp.Metadata)
+
+	s.db.EXPECT().GetFile(ctx, uid, dataID).Return("", nil, dbErr)
+	resp, err = s.serverKeep.LoadFileData(ctx, &pb.DataID_DTO{ID: dataID})
+	s.Assert().Error(err)
+	stat, _ := status.FromError(err)
+	s.Assert().Equal(codes.Internal, stat.Code())
+	s.Assert().Nil(resp)
+}
+
 func TestGRPCServerUnit(t *testing.T) {
 	suite.Run(t, new(gRPCServerTestSuite))
 }
