@@ -28,6 +28,10 @@ type (
 		add func(ctx context.Context, data []byte, meta string,
 		) (dataID, metadata string, err error)
 	}
+	localFunctions struct {
+		load func(ctx context.Context, id int) (resultState state, err error)
+		add  func(ctx context.Context, command string) (resultState state, err error)
+	}
 
 	stateDataType struct {
 		stateGetName
@@ -40,6 +44,7 @@ type (
 		inputField   int
 		currentInput []string
 		fn           *accessFunctions
+		local        *localFunctions
 	}
 )
 
@@ -67,6 +72,10 @@ func newCredsState(app *Application, config *cfg.ConfigT) state {
 			add: app.grpc.StoreCredData,
 		},
 	}
+	st.local = &localFunctions{
+		load: st.load,
+		add:  st.add,
+	}
 	return st
 }
 
@@ -90,6 +99,10 @@ func newCardState(app *Application, config *cfg.ConfigT) state {
 			add: app.grpc.StoreCardData,
 		},
 	}
+	st.local = &localFunctions{
+		load: st.load,
+		add:  st.add,
+	}
 	return st
 }
 
@@ -111,34 +124,17 @@ func newTextState(app *Application, config *cfg.ConfigT) state {
 			add: app.grpc.StoreTextData,
 		},
 	}
+	st.local = &localFunctions{
+		load: st.load,
+		add:  st.add,
+	}
 	return st
 }
-
-//	func newFileState(app *Application, config *cfg.ConfigT) state {
-//		st := &stateDataType{
-//			stateGetName: stateGetName{stateName: "Credentials view"},
-//			data:         make(dataType),
-//			dataIDs:      make([]string, 0),
-//			app:          app,
-//			category:     GRPCClient.CategoryCred,
-//			fields:       []string{
-//				"filename",
-//				"metadata",
-//			},
-//			config:       config,
-//			inputField:   -1,
-//			fn: &accessFunctions{
-//				get: app.grpc.LoadCredData,
-//				add: app.grpc.StoreCredData,
-//			},
-//		}
-//		return st
-//	}
 
 func (s *stateDataType) execute(ctx context.Context, command string) (resultState state, err error) {
 	arguments := strings.Split(command, " ")
 	if s.inputField >= 0 {
-		return s.add(ctx, command)
+		return s.local.add(ctx, command)
 	}
 
 	switch {
@@ -164,7 +160,7 @@ func (s *stateDataType) execute(ctx context.Context, command string) (resultStat
 	case includes(commandHead, strings.ToLower(arguments[0])):
 		err = s.fetch(ctx)
 		if err != nil {
-			return nil, fmt.Errorf("head fetching failed: %w", err)
+			return s, fmt.Errorf("head fetching failed: %w", err)
 		}
 		if len(s.data) == 0 {
 			return s, errors.New("empty list")
@@ -181,28 +177,7 @@ func (s *stateDataType) execute(ctx context.Context, command string) (resultStat
 		if err != nil {
 			return s, fmt.Errorf("%w\nid should be int", ErrUnrecognizedCommand)
 		}
-		dataID := s.dataIDs[id]
-		if len(s.data[dataID].Data) == 0 {
-			var resp []byte
-			resp, err = s.fn.get(ctx, s.data[dataID].DataID)
-			if err != nil {
-				return s, fmt.Errorf("requesting data failed: %w", err)
-			}
-
-			var data string
-			data, err = s.app.encoder.Decode(resp)
-			if err != nil {
-				return s, fmt.Errorf("decoding data failed: %w", err)
-			}
-			dataArr := strings.Split(data, "\x00")
-			s.data[dataID].Data = dataArr
-		}
-		for i := 0; i < len(s.fields)-1; i++ {
-			fmt.Println(s.fields[i]+": ", s.data[dataID].Data[i])
-		}
-		fmt.Println("metadata: ", s.data[dataID].Metadata)
-
-		return s, nil
+		return s.local.load(ctx, id)
 
 	case includes(commandBack, strings.ToLower(arguments[0])):
 		return s.app.cat[stateMenu], nil
@@ -225,7 +200,32 @@ func (s *stateDataType) add(ctx context.Context, command string) (resultState st
 	if err != nil {
 		return s, fmt.Errorf("adding entry failed: %w", err)
 	}
-	s.data[dataID] = &dataEntry{DataID: dataID, Metadata: metadata}
+	s.data[dataID] = &dataEntry{DataID: dataID, Metadata: metadata, Data: s.currentInput}
+	s.currentInput = []string{}
+	return s, nil
+}
+
+func (s *stateDataType) load(ctx context.Context, id int) (resultState state, err error) {
+	dataID := s.dataIDs[id]
+	if len(s.data[dataID].Data) == 0 {
+		var resp []byte
+		resp, err = s.fn.get(ctx, s.data[dataID].DataID)
+		if err != nil {
+			return s, fmt.Errorf("requesting data failed: %w", err)
+		}
+
+		var data string
+		data, err = s.app.encoder.Decode(resp)
+		if err != nil {
+			return s, fmt.Errorf("decoding data failed: %w", err)
+		}
+		dataArr := strings.Split(data, "\x00")
+		s.data[dataID].Data = dataArr
+	}
+	for i := 0; i < len(s.fields)-1; i++ {
+		fmt.Println(s.fields[i]+": ", s.data[dataID].Data[i])
+	}
+	fmt.Println("metadata: ", s.data[dataID].Metadata)
 	return s, nil
 }
 

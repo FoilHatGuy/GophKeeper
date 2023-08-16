@@ -5,11 +5,10 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/sakirsensoy/genv/dotenv"
-	log "github.com/sirupsen/logrus"
-
 	defaults "github.com/mcuadros/go-defaults"
 	"github.com/sakirsensoy/genv"
+	"github.com/sakirsensoy/genv/dotenv"
+	log "github.com/sirupsen/logrus"
 )
 
 // ConfigOption

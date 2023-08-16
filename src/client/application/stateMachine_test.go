@@ -23,25 +23,21 @@ var errCall = errors.New("error in grpc")
 
 type StateMachineTestSuite struct {
 	suite.Suite
-	config  *cfg.ConfigT
-	ctx     context.Context
-	secrets []string
+	config *cfg.ConfigT
+	ctx    context.Context
 }
 
 func (s *StateMachineTestSuite) SetupSuite() {
-	testConf := "./test_config_delete_later"
-	s.secrets = append(s.secrets, testConf)
+	os.Mkdir("./temp", 0o777)
+	testConf := "./temp/test_config_delete_later"
 	s.T().Setenv("GKEEPER_CONFIG", testConf)
 	s.config = cfg.New(cfg.FromDefaults())
-	s.config.SecretPath = "./TEST_FILE_DELETE_LATER"
+	s.config.SecretPath = "./temp/TEST_FILE_DELETE_LATER"
 	s.ctx = context.Background()
 }
 
 func (s *StateMachineTestSuite) TearDownSuite() {
-	for _, fName := range s.secrets {
-		os.Remove(fName)
-	}
-	os.Remove(s.config.SecretPath)
+	os.RemoveAll("./temp")
 }
 
 func (s *StateMachineTestSuite) TestLoginStateLogin() {
@@ -51,8 +47,7 @@ func (s *StateMachineTestSuite) TestLoginStateLogin() {
 		pass  = "pass"
 	)
 	config := cfg.New(cfg.FromDefaults())
-	config.SecretPath = "./TestLoginStateLogin"
-	s.secrets = append(s.secrets, config.SecretPath)
+	config.SecretPath = "./temp/TestLoginStateLogin"
 	app := newApplication(config, grpc, func() error { return nil })
 	testState := newLoginState(app, s.config)
 
@@ -92,8 +87,7 @@ func (s *StateMachineTestSuite) TestLoginStateLogin() {
 	s.Assert().IsType(&stateMenuType{}, resState)
 
 	// login grpc error
-	config.SecretPath = "./TestLoginStateLogin_2"
-	s.secrets = append(s.secrets, config.SecretPath)
+	config.SecretPath = "./temp/TestLoginStateLogin_2"
 	grpc.EXPECT().Login(s.ctx, login, pass).Return(errCall)
 	resState, err = testState.execute(s.ctx,
 		fmt.Sprintf("l %s %s", login, pass),
@@ -144,8 +138,7 @@ func (s *StateMachineTestSuite) TestLoginStateOther() {
 	)
 
 	config := cfg.New(cfg.FromDefaults())
-	config.SecretPath = "./TestLoginStateOther"
-	s.secrets = append(s.secrets, config.SecretPath)
+	config.SecretPath = "./temp/TestLoginStateOther"
 	app := newApplication(config, grpc, func() error { return nil })
 	testState := newLoginState(app, s.config)
 
@@ -183,8 +176,7 @@ func (s *StateMachineTestSuite) TestLoginStateOther() {
 func (s *StateMachineTestSuite) TestMenuState() {
 	grpc := NewMockGRPCWrapper(gomock.NewController(s.T()))
 	config := cfg.New(cfg.FromDefaults())
-	config.SecretPath = "./TestMenuState"
-	s.secrets = append(s.secrets, config.SecretPath)
+	config.SecretPath = "./temp/TestMenuState"
 	app := newApplication(config, grpc, func() error { return nil })
 	testState := newMenuState(app, s.config)
 	app.encoder = encoding.New("secret")
@@ -266,8 +258,7 @@ func (s *StateMachineTestSuite) TestMenuState() {
 func (s *StateMachineTestSuite) TestDataState() {
 	grpc := NewMockGRPCWrapper(gomock.NewController(s.T()))
 	config := cfg.New(cfg.FromDefaults())
-	config.SecretPath = "./TestDataState"
-	s.secrets = append(s.secrets, config.SecretPath)
+	config.SecretPath = "./temp/TestDataState"
 	app := newApplication(config, grpc, func() error { return nil })
 	testState := newCredsState(app, s.config)
 	app.encoder = encoding.New("secret")
@@ -322,6 +313,8 @@ func (s *StateMachineTestSuite) TestDataState() {
 	s.Assert().IsType(&stateDataType{}, resState)
 
 	// load
+	k := testState.(*stateDataType)
+	k.data[dataID].Data = []string{}
 	grpc.EXPECT().LoadCredData(s.ctx, dataID).Return(app.encoder.Encode(data), nil)
 	resState, err = testState.execute(s.ctx, "load 0")
 	s.Assert().NoError(err)
@@ -343,11 +336,89 @@ func (s *StateMachineTestSuite) TestDataState() {
 	s.Assert().IsType(&stateMenuType{}, resState)
 }
 
+func (s *StateMachineTestSuite) TestFileState() {
+	grpc := NewMockGRPCWrapper(gomock.NewController(s.T()))
+	config := cfg.New(cfg.FromDefaults())
+	config.SecretPath = "./temp/TestDataState"
+	app := newApplication(config, grpc, func() error { return nil })
+	testState := newFileState(app, s.config)
+	app.encoder = encoding.New("secret")
+	filename := "./temp/file_test"
+	meta := "metadata"
+	dataID := uuid.NewString()
+	data := uuid.NewString()
+	os.WriteFile(filename, []byte(data), 0o600)
+
+	// head
+	grpc.EXPECT().GetCategoryHead(s.ctx, grpcclient.CategoryFile).Return([]*grpcclient.CategoryEntry{}, nil)
+	_, err := testState.execute(s.ctx, "head")
+	s.Assert().Equal("empty list", err.Error())
+
+	grpc.EXPECT().GetCategoryHead(s.ctx, grpcclient.CategoryFile).Return([]*grpcclient.CategoryEntry{}, errCall)
+	_, err = testState.execute(s.ctx, "head")
+	s.Assert().Error(err)
+
+	grpc.EXPECT().GetCategoryHead(s.ctx, grpcclient.CategoryFile).Return([]*grpcclient.CategoryEntry{
+		{
+			DataID:   dataID,
+			Metadata: meta,
+		},
+	}, nil)
+	_, err = testState.execute(s.ctx, "head")
+	s.Assert().NoError(err)
+
+	// add data
+	grpc.EXPECT().StoreFileData(s.ctx, gomock.Any(), meta).DoAndReturn(
+		func(_ context.Context, in []byte, _ string) (string, string, error) {
+			return dataID, meta, nil
+		})
+	resState, err := testState.execute(s.ctx, "add")
+	s.Assert().NoError(err)
+	s.Assert().IsType(&stateFileType{}, resState)
+	resState, err = resState.execute(s.ctx, filename)
+	s.Assert().NoError(err)
+	s.Assert().IsType(&stateFileType{}, resState)
+	resState, err = resState.execute(s.ctx, meta)
+	s.Assert().NoError(err)
+	s.Assert().IsType(&stateFileType{}, resState)
+
+	// err in call
+	grpc.EXPECT().StoreFileData(s.ctx, gomock.Any(), meta).Return("", "", errCall)
+	_, err = testState.execute(s.ctx, "add")
+	_, err = testState.execute(s.ctx, filename)
+	resState, err = testState.execute(s.ctx, meta)
+	s.Assert().Error(err)
+	s.Assert().IsType(&stateFileType{}, resState)
+
+	// load
+	defer os.Remove(dataID)
+	k := testState.(*stateFileType)
+	k.d.data[dataID].Data = []string{}
+	grpc.EXPECT().LoadFileData(s.ctx, dataID).Return(app.encoder.Encode(data), nil)
+	resState, err = testState.execute(s.ctx, "load 0")
+	s.Assert().NoError(err)
+	s.Assert().IsType(&stateFileType{}, resState)
+
+	// help
+	resState, err = testState.execute(s.ctx, "help")
+	s.Assert().NoError(err)
+	s.Assert().IsType(&stateFileType{}, resState)
+
+	// unrecognized command
+	resState, err = testState.execute(s.ctx, "wrong")
+	s.Assert().ErrorIs(err, ErrUnrecognizedCommand)
+	s.Assert().IsType(&stateFileType{}, resState)
+
+	// back
+	resState, err = testState.execute(s.ctx, "b")
+	s.Assert().NoError(err)
+	s.Assert().IsType(&stateMenuType{}, resState)
+}
+
 func (s *StateMachineTestSuite) TestConfigState() {
 	grpc := NewMockGRPCWrapper(gomock.NewController(s.T()))
 	config := cfg.New(cfg.FromDefaults())
-	config.SecretPath = "./TestConfigState"
-	s.secrets = append(s.secrets, config.SecretPath)
+	config.SecretPath = "./temp/TestConfigState"
 	app := newApplication(config, grpc, func() error { return nil })
 	testState := newConfigState(app, s.config)
 
@@ -373,7 +444,7 @@ func (s *StateMachineTestSuite) TestConfigState() {
 	s.Assert().IsType(&stateConfigType{}, resState)
 	s.Assert().Equal(newAddr, config.ServerAddress)
 
-	newSecret := "./.keys"
+	newSecret := "./temp/.keys"
 	resState, err = testState.execute(s.ctx, "mod 2 "+newSecret)
 	s.Assert().NoError(err)
 	s.Assert().IsType(&stateConfigType{}, resState)
@@ -398,8 +469,7 @@ func (s *StateMachineTestSuite) TestConfigState() {
 func (s *StateMachineTestSuite) TestApplication() {
 	grpc := NewMockGRPCWrapper(gomock.NewController(s.T()))
 	config := cfg.New(cfg.FromDefaults())
-	config.SecretPath = "./TestApplication"
-	s.secrets = append(s.secrets, config.SecretPath)
+	config.SecretPath = "./temp/TestApplication"
 	app := newApplication(config, grpc, func() error { return nil })
 
 	do := make(chan string)

@@ -48,8 +48,8 @@ service GophKeeper {
   rpc StoreCardData (SecureData_DTO) returns (DataID_DTO) {}
   rpc LoadCardData (DataID_DTO) returns (SecureData_DTO) {}
 
-  rpc StoreFile (SecureData_DTO) returns (DataID_DTO) {}
-  rpc LoadFile (DataID_DTO) returns (SecureData_DTO) {}
+  rpc StoreFileData (SecureData_DTO) returns (DataID_DTO) {}
+  rpc LoadFileData (DataID_DTO) returns (SecureData_DTO) {}
 }
 
 

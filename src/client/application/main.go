@@ -64,7 +64,7 @@ func newApplication(config *cfg.ConfigT, grpc GRPCClient.GRPCWrapper, callback f
 		stateCreds:  newCredsState(app, config),
 		stateCard:   newCardState(app, config),
 		stateText:   newTextState(app, config),
-		// stateFile:   newFileState(app, config),
+		stateFile:   newFileState(app, config),
 	}
 	app.state = catalogue[stateLogin]
 	app.cat = catalogue

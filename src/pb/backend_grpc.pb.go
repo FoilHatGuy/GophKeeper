@@ -29,8 +29,8 @@ type GophKeeperClient interface {
 	LoadTextData(ctx context.Context, in *DataID_DTO, opts ...grpc.CallOption) (*SecureData_DTO, error)
 	StoreCardData(ctx context.Context, in *SecureData_DTO, opts ...grpc.CallOption) (*DataID_DTO, error)
 	LoadCardData(ctx context.Context, in *DataID_DTO, opts ...grpc.CallOption) (*SecureData_DTO, error)
-	StoreFile(ctx context.Context, in *SecureData_DTO, opts ...grpc.CallOption) (*DataID_DTO, error)
-	LoadFile(ctx context.Context, in *DataID_DTO, opts ...grpc.CallOption) (*SecureData_DTO, error)
+	StoreFileData(ctx context.Context, in *SecureData_DTO, opts ...grpc.CallOption) (*DataID_DTO, error)
+	LoadFileData(ctx context.Context, in *DataID_DTO, opts ...grpc.CallOption) (*SecureData_DTO, error)
 }
 
 type gophKeeperClient struct {
@@ -104,18 +104,18 @@ func (c *gophKeeperClient) LoadCardData(ctx context.Context, in *DataID_DTO, opt
 	return out, nil
 }
 
-func (c *gophKeeperClient) StoreFile(ctx context.Context, in *SecureData_DTO, opts ...grpc.CallOption) (*DataID_DTO, error) {
+func (c *gophKeeperClient) StoreFileData(ctx context.Context, in *SecureData_DTO, opts ...grpc.CallOption) (*DataID_DTO, error) {
 	out := new(DataID_DTO)
-	err := c.cc.Invoke(ctx, "/base.GophKeeper/StoreFile", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/base.GophKeeper/StoreFileData", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *gophKeeperClient) LoadFile(ctx context.Context, in *DataID_DTO, opts ...grpc.CallOption) (*SecureData_DTO, error) {
+func (c *gophKeeperClient) LoadFileData(ctx context.Context, in *DataID_DTO, opts ...grpc.CallOption) (*SecureData_DTO, error) {
 	out := new(SecureData_DTO)
-	err := c.cc.Invoke(ctx, "/base.GophKeeper/LoadFile", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/base.GophKeeper/LoadFileData", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -133,8 +133,8 @@ type GophKeeperServer interface {
 	LoadTextData(context.Context, *DataID_DTO) (*SecureData_DTO, error)
 	StoreCardData(context.Context, *SecureData_DTO) (*DataID_DTO, error)
 	LoadCardData(context.Context, *DataID_DTO) (*SecureData_DTO, error)
-	StoreFile(context.Context, *SecureData_DTO) (*DataID_DTO, error)
-	LoadFile(context.Context, *DataID_DTO) (*SecureData_DTO, error)
+	StoreFileData(context.Context, *SecureData_DTO) (*DataID_DTO, error)
+	LoadFileData(context.Context, *DataID_DTO) (*SecureData_DTO, error)
 	mustEmbedUnimplementedGophKeeperServer()
 }
 
@@ -163,11 +163,11 @@ func (UnimplementedGophKeeperServer) StoreCardData(context.Context, *SecureData_
 func (UnimplementedGophKeeperServer) LoadCardData(context.Context, *DataID_DTO) (*SecureData_DTO, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method LoadCardData not implemented")
 }
-func (UnimplementedGophKeeperServer) StoreFile(context.Context, *SecureData_DTO) (*DataID_DTO, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method StoreFile not implemented")
+func (UnimplementedGophKeeperServer) StoreFileData(context.Context, *SecureData_DTO) (*DataID_DTO, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method StoreFileData not implemented")
 }
-func (UnimplementedGophKeeperServer) LoadFile(context.Context, *DataID_DTO) (*SecureData_DTO, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method LoadFile not implemented")
+func (UnimplementedGophKeeperServer) LoadFileData(context.Context, *DataID_DTO) (*SecureData_DTO, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method LoadFileData not implemented")
 }
 func (UnimplementedGophKeeperServer) mustEmbedUnimplementedGophKeeperServer() {}
 
@@ -308,38 +308,38 @@ func _GophKeeper_LoadCardData_Handler(srv interface{}, ctx context.Context, dec 
 	return interceptor(ctx, in, info, handler)
 }
 
-func _GophKeeper_StoreFile_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _GophKeeper_StoreFileData_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(SecureData_DTO)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(GophKeeperServer).StoreFile(ctx, in)
+		return srv.(GophKeeperServer).StoreFileData(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/base.GophKeeper/StoreFile",
+		FullMethod: "/base.GophKeeper/StoreFileData",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(GophKeeperServer).StoreFile(ctx, req.(*SecureData_DTO))
+		return srv.(GophKeeperServer).StoreFileData(ctx, req.(*SecureData_DTO))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _GophKeeper_LoadFile_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _GophKeeper_LoadFileData_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(DataID_DTO)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(GophKeeperServer).LoadFile(ctx, in)
+		return srv.(GophKeeperServer).LoadFileData(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/base.GophKeeper/LoadFile",
+		FullMethod: "/base.GophKeeper/LoadFileData",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(GophKeeperServer).LoadFile(ctx, req.(*DataID_DTO))
+		return srv.(GophKeeperServer).LoadFileData(ctx, req.(*DataID_DTO))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -380,12 +380,12 @@ var GophKeeper_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _GophKeeper_LoadCardData_Handler,
 		},
 		{
-			MethodName: "StoreFile",
-			Handler:    _GophKeeper_StoreFile_Handler,
+			MethodName: "StoreFileData",
+			Handler:    _GophKeeper_StoreFileData_Handler,
 		},
 		{
-			MethodName: "LoadFile",
-			Handler:    _GophKeeper_LoadFile_Handler,
+			MethodName: "LoadFileData",
+			Handler:    _GophKeeper_LoadFileData_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

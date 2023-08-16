@@ -30,6 +30,8 @@ type GRPCWrapper interface {
 	LoadTextData(ctx context.Context, dataID string) (data []byte, err error)
 	StoreCardData(ctx context.Context, data []byte, meta string) (dataID, metadata string, err error)
 	LoadCardData(ctx context.Context, dataID string) (data []byte, err error)
+	StoreFileData(ctx context.Context, data []byte, meta string) (dataID, metadata string, err error)
+	LoadFileData(ctx context.Context, dataID string) (data []byte, err error)
 }
 
 var ErrAlreadyLoggedIn = errors.New("user already logged in")
@@ -174,7 +176,7 @@ func (c *GRPCClient) StoreCredData(ctx context.Context, data []byte, meta string
 		Metadata: meta,
 	})
 	if err != nil {
-		return "", "", fmt.Errorf("grpc call store creds: %w", err)
+		return "", "", fmt.Errorf("grpc call add creds: %w", err)
 	}
 	return resp.GetID(), meta, nil
 }
@@ -195,7 +197,7 @@ func (c *GRPCClient) StoreTextData(ctx context.Context, data []byte, meta string
 		Metadata: meta,
 	})
 	if err != nil {
-		return "", "", fmt.Errorf("grpc call load text: %w", err)
+		return "", "", fmt.Errorf("grpc call add text: %w", err)
 	}
 	return resp.GetID(), meta, err
 }
@@ -217,7 +219,7 @@ func (c *GRPCClient) StoreCardData(ctx context.Context, data []byte, meta string
 		Metadata: meta,
 	})
 	if err != nil {
-		return "", "", fmt.Errorf("grpc call load card: %w", err)
+		return "", "", fmt.Errorf("grpc call add card: %w", err)
 	}
 	return resp.GetID(), meta, err
 }
@@ -228,6 +230,30 @@ func (c *GRPCClient) LoadCardData(ctx context.Context, dataID string) (data []by
 	})
 	if err != nil {
 		return nil, fmt.Errorf("grpc call load card: %w", err)
+	}
+	return resp.GetData(), err
+}
+
+func (c *GRPCClient) StoreFileData(ctx context.Context, data []byte, meta string,
+) (dataID, metadata string, err error) {
+	// needs to be stream
+	resp, err := c.keep.StoreFileData(ctx, &pb.SecureData_DTO{
+		Data:     data,
+		Metadata: meta,
+	})
+	if err != nil {
+		return "", "", fmt.Errorf("grpc call add file: %w", err)
+	}
+	return resp.GetID(), meta, err
+}
+
+func (c *GRPCClient) LoadFileData(ctx context.Context, dataID string) (data []byte, err error) {
+	// needs to be stream
+	resp, err := c.keep.LoadFileData(ctx, &pb.DataID_DTO{
+		ID: dataID,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("grpc call load file: %w", err)
 	}
 	return resp.GetData(), err
 }
