@@ -32,7 +32,7 @@ func (s *stateConfigType) execute(ctx context.Context, command string) (resultSt
 	arguments := strings.Split(command, " ")
 	switch {
 	case includes(commandHelp, strings.ToLower(arguments[0])):
-		fmt.Printf("This is Login screen. Available commands:\n"+
+		fmt.Printf("This is Config screen. Available commands:\n"+
 			"help   - %q - shows available commands (this screen)\n"+
 			"back   - %q - return to menu\n"+
 			"about  - %q - print build info\n"+

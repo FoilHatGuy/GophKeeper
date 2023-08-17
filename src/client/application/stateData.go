@@ -44,6 +44,7 @@ type (
 		inputField   int
 		currentInput []string
 		fn           *accessFunctions
+		temp         string
 		local        *localFunctions
 	}
 )
@@ -139,7 +140,7 @@ func (s *stateDataType) execute(ctx context.Context, command string) (resultStat
 
 	switch {
 	case includes(commandHelp, strings.ToLower(arguments[0])):
-		fmt.Printf("This is Login screen. Available commands:\n"+
+		fmt.Printf("This is Data screen. Available commands:\n"+
 			"help - %q - shows available commands (this screen)\n"+
 			"load - %q $id$ - requests encoded data for entity:\n"+
 			"add  - %q - initiates adding of data:\n"+
@@ -154,7 +155,8 @@ func (s *stateDataType) execute(ctx context.Context, command string) (resultStat
 
 	case includes(commandAdd, strings.ToLower(arguments[0])):
 		s.inputField = 0
-		fmt.Printf("Input %q: ", s.fields[s.inputField])
+		s.temp = s.stateName
+		s.stateName = fmt.Sprintf("Input %q ", s.fields[s.inputField])
 		return s, nil
 
 	case includes(commandHead, strings.ToLower(arguments[0])):
@@ -190,16 +192,18 @@ func (s *stateDataType) add(ctx context.Context, command string) (resultState st
 	if s.inputField != len(s.fields)-1 {
 		s.currentInput = append(s.currentInput, command)
 		s.inputField++
-		fmt.Printf("Input %q: ", s.fields[s.inputField])
+		s.stateName = fmt.Sprintf("Input %q ", s.fields[s.inputField])
 		return s, nil
 	}
 
 	data := s.app.encoder.Encode(strings.Join(s.currentInput, "\x00"))
 	dataID, metadata, err := s.fn.add(ctx, data, command)
 	s.inputField = -1
+	s.stateName = s.temp
 	if err != nil {
 		return s, fmt.Errorf("adding entry failed: %w", err)
 	}
+	s.dataIDs = append(s.dataIDs, dataID)
 	s.data[dataID] = &dataEntry{DataID: dataID, Metadata: metadata, Data: s.currentInput}
 	s.currentInput = []string{}
 	return s, nil

@@ -42,6 +42,7 @@ func New(config *cfg.ConfigT) (client GRPCWrapper, callback func() error) {
 	}
 	conn, err := grpc.Dial(
 		config.ServerAddress,
+		// gosec:need to do proper certificate
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 		grpc.WithUnaryInterceptor(newClient.Authenticate),
 	)
@@ -76,16 +77,12 @@ func (c *GRPCClient) Authenticate(
 		}
 		return nil
 	}
-	ctx = metadata.AppendToOutgoingContext(ctx, "sid", c.sessionID)
+
+	ctx = metadata.NewOutgoingContext(ctx, metadata.Pairs("sid", c.sessionID))
 	err = invoker(ctx, method, req, reply, cc, opts...)
 	if err != nil {
 		return fmt.Errorf("authenticate middleware error: %w", err)
 	}
-	md, ok := metadata.FromIncomingContext(ctx)
-	if !ok {
-		return errors.New("no metadata")
-	}
-	c.sessionID = md.Get("sid")[0]
 	return nil
 }
 
@@ -145,10 +142,10 @@ type CategoryEntry struct {
 type Category pb.Category
 
 const (
-	CategoryCred Category = Category(pb.Category_CATEGORY_CRED)
-	CategoryText Category = Category(pb.Category_CATEGORY_TEXT)
-	CategoryCard Category = Category(pb.Category_CATEGORY_CARD)
-	CategoryFile Category = Category(pb.Category_CATEGORY_FILE)
+	CategoryCred = Category(pb.Category_CATEGORY_CRED)
+	CategoryText = Category(pb.Category_CATEGORY_TEXT)
+	CategoryCard = Category(pb.Category_CATEGORY_CARD)
+	CategoryFile = Category(pb.Category_CATEGORY_FILE)
 )
 
 func (c *GRPCClient) GetCategoryHead(ctx context.Context, category Category) (head []*CategoryEntry, err error) {

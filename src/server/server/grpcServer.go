@@ -219,7 +219,7 @@ func (s *ServerGRPC) Authenticate(
 	if !ok {
 		return nil, status.Errorf(codes.ResourceExhausted, "session stale")
 	}
-	metadata.AppendToOutgoingContext(ctx, sidMetaKey, sid)
+	ctx = metadata.NewOutgoingContext(ctx, metadata.Pairs(sidMetaKey, sid))
 
 	return handler(ctx, req)
 }

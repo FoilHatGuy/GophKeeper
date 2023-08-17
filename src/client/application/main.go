@@ -129,6 +129,9 @@ func (a *Application) Execute(ctx context.Context, command string) error {
 		}
 	}
 	a.state = newState
+	if err != nil {
+		return fmt.Errorf("execution failed: %w", err)
+	}
 	return nil
 }
 

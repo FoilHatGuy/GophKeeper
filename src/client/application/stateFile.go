@@ -58,10 +58,11 @@ func (s *stateFileType) add(ctx context.Context, command string) (resultState st
 	if s.d.inputField != len(s.d.fields)-1 {
 		s.d.currentInput = append(s.d.currentInput, command)
 		s.d.inputField++
-		fmt.Printf("Input %q: ", s.d.fields[s.d.inputField])
+		s.d.stateName = fmt.Sprintf("Input %q ", s.d.fields[s.d.inputField])
 		return s, nil
 	}
 
+	s.d.stateName = s.d.temp
 	file, err := os.ReadFile(s.d.currentInput[0])
 	if err != nil {
 		return s, fmt.Errorf("file open failed: %w", err)
@@ -72,6 +73,7 @@ func (s *stateFileType) add(ctx context.Context, command string) (resultState st
 	if err != nil {
 		return s, fmt.Errorf("adding entry failed: %w", err)
 	}
+	s.d.dataIDs = append(s.d.dataIDs, dataID)
 	s.d.data[dataID] = &dataEntry{DataID: dataID, Metadata: metadata, Data: s.d.currentInput}
 	s.d.currentInput = []string{}
 	return s, nil

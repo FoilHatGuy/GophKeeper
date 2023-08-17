@@ -34,7 +34,7 @@ func (s *stateMenuType) execute(ctx context.Context, command string) (resultStat
 	arguments := strings.Split(command, " ")
 	switch {
 	case includes(commandHelp, strings.ToLower(arguments[0])):
-		fmt.Printf("This is Login screen. Available commands:\n"+
+		fmt.Printf("This is Data screen. Available commands:\n"+
 			"help   - %q - shows available commands (this screen)\n"+
 			"open   - %q $category$ - opens one of the categories:\n"+
 			"\t %q - Card information\n"+
