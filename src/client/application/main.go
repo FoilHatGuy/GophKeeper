@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"os"
 
 	"gophKeeper/src/client/cfg"
@@ -32,51 +33,59 @@ type state interface {
 	getName() string
 }
 
-type stateData interface {
-	state
-	show(ctx context.Context)
-	fetch(ctx context.Context) (err error)
-}
-
 type Application struct {
 	state     state
 	cat       map[int]state
 	config    *cfg.ConfigT
-	grpc      *GRPCClient.GRPCClient
+	grpc      GRPCClient.GRPCWrapper
 	closeFunc func() error
 	userKey   string
 	encoder   *encoding.Encoder
 }
 
-func newApplication(config *cfg.ConfigT) *Application {
+type stateGetName struct {
+	stateName string
+}
+
+func (s *stateGetName) getName() string {
+	return s.stateName
+}
+
+func newApplication(config *cfg.ConfigT, grpc GRPCClient.GRPCWrapper, callback func() error) *Application {
 	app := &Application{
 		config: config,
 	}
+	app.grpc = grpc
+	app.closeFunc = callback
 	catalogue := map[int]state{
 		stateLogin:  newLoginState(app, config),
 		stateMenu:   newMenuState(app, config),
 		stateConfig: newConfigState(app, config),
 		stateCreds:  newCredsState(app, config),
-		// stateCard:   &stateCardType{app, config, nil},
-		// stateText:   &stateTextType{app, config, nil},
-		// stateFile:   &stateFileType{app, config, nil},
+		stateCard:   newCardState(app, config),
+		stateText:   newTextState(app, config),
+		stateFile:   newFileState(app, config),
 	}
 	app.state = catalogue[stateLogin]
 	app.cat = catalogue
-	app.grpc, app.closeFunc = GRPCClient.New(config)
 	return app
 }
 
-func (a *Application) Run() {
-	const colorRed = "\033[0;31m"
-	const colorBlue = "\033[0;34m"
-	const colorNone = "\033[0m"
+const (
+	colorRed    = "\033[0;31m"
+	colorGreen  = "\033[0;32m"
+	colorYellow = "\033[0;33m"
+	colorBlue   = "\033[0;34m"
+	colorNone   = "\033[0m"
+)
 
-	scanner := bufio.NewScanner(os.Stdin)
-	fmt.Println("app is ready to accept commands!")
-	for {
+func (a *Application) Run(input io.Reader) {
+	doPrint := func() {
 		fmt.Printf("%s%s:%s ", colorBlue, a.state.getName(), colorNone)
-		scanner.Scan()
+	}
+	scanner := bufio.NewScanner(input)
+	doPrint()
+	for scanner.Scan() {
 		ctx := context.Background()
 		err := a.Execute(ctx, scanner.Text())
 		if errors.Is(err, ErrExit) {
@@ -85,14 +94,19 @@ func (a *Application) Run() {
 		if err != nil {
 			fmt.Println(colorRed, err, colorNone)
 		}
+		doPrint()
 	}
 	err := a.closeFunc()
-	panic(err)
+	if err != nil {
+		panic(err)
+	}
 }
 
 func New(config *cfg.ConfigT) {
-	app := newApplication(config)
-	app.Run()
+	grpc, cb := GRPCClient.New(config)
+	app := newApplication(config, grpc, cb)
+	input := os.Stdin
+	app.Run(input)
 }
 
 func (a *Application) Execute(ctx context.Context, command string) error {
@@ -116,7 +130,7 @@ func (a *Application) Execute(ctx context.Context, command string) error {
 	}
 	a.state = newState
 	if err != nil {
-		return fmt.Errorf("application error: %w", err)
+		return fmt.Errorf("execution failed: %w", err)
 	}
 	return nil
 }

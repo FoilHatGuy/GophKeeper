@@ -8,21 +8,23 @@ import (
 
 	defaults "github.com/mcuadros/go-defaults"
 	"github.com/sakirsensoy/genv"
-	_ "github.com/sakirsensoy/genv/dotenv/autoload" // import for automatic loading of .env config
 )
 
 var (
-	configPath        string
-	keyRSAPath        string
-	serverAddressHTTP string
-	serverAddressGRPC string
+	configPath    string
+	secretPath    string
+	serverAddress string
 )
 
 func init() {
 	flag.StringVar(&configPath, "c", "", "path to JSON config. If not specified, ignores json option")
-	flag.StringVar(&keyRSAPath, "k", "", "path to RSA key")
-	flag.StringVar(&serverAddressHTTP, "a", "", "server's HTTP address")
-	flag.StringVar(&serverAddressGRPC, "g", "", "server's GRPC address")
+	flag.StringVar(&secretPath, "k", "", "path to secret file")
+	flag.StringVar(&serverAddress, "a", "", "server's address")
+}
+
+func (t ConfigT) Save() {
+	file, _ := json.MarshalIndent(t, "", "\t")
+	_ = os.WriteFile(t.ConfigPath, file, 0o600)
 }
 
 // ConfigOption
@@ -51,6 +53,10 @@ func New(opts ...ConfigOption) *ConfigT {
 func FromDefaults() ConfigOption {
 	return func(c *ConfigT) *ConfigT {
 		defaults.SetDefaults(c)
+		if c.Build == nil {
+			c.Build = &BuildT{}
+			defaults.SetDefaults(c.Build)
+		}
 		return c
 	}
 }
@@ -59,14 +65,11 @@ func FromDefaults() ConfigOption {
 // Initializes default values of type ConfigT
 func FromFlags() ConfigOption {
 	return func(c *ConfigT) *ConfigT {
-		if keyRSAPath != "" {
-			c.SecretPath = keyRSAPath
+		if secretPath != "" {
+			c.SecretPath = secretPath
 		}
-		if serverAddressHTTP != "" {
-			c.ServerAddressHTTP = serverAddressHTTP
-		}
-		if serverAddressGRPC != "" {
-			c.ServerAddressGRPC = serverAddressGRPC
+		if serverAddress != "" {
+			c.ServerAddress = serverAddress
 		}
 		return c
 	}
@@ -99,5 +102,14 @@ func FromJSON() ConfigOption {
 		}
 
 		return &c2
+	}
+}
+
+// WithBuild
+// Initializes default values of type ConfigT
+func WithBuild(t *BuildT) ConfigOption {
+	return func(c *ConfigT) *ConfigT {
+		c.Build = t
+		return c
 	}
 }

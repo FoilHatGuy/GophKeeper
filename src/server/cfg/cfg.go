@@ -2,13 +2,13 @@ package cfg
 
 import (
 	"encoding/json"
-	"flag"
 	"fmt"
 	"os"
 
 	defaults "github.com/mcuadros/go-defaults"
 	"github.com/sakirsensoy/genv"
-	_ "github.com/sakirsensoy/genv/dotenv/autoload" // import for automatic loading of .env config
+	"github.com/sakirsensoy/genv/dotenv"
+	log "github.com/sirupsen/logrus"
 )
 
 // ConfigOption
@@ -24,10 +24,6 @@ func New(opts ...ConfigOption) *ConfigT {
 		Data: &DataStorageT{
 			PostgesDSN: "",
 		},
-	}
-
-	if !flag.Parsed() {
-		flag.Parse()
 	}
 
 	for _, o := range opts {
@@ -64,7 +60,7 @@ func FromJSON() ConfigOption {
 		err = json.Unmarshal(data, &c2)
 		if err != nil {
 			fmt.Println(err)
-			return nil
+			return c
 		}
 
 		return &c2
@@ -75,12 +71,21 @@ func FromJSON() ConfigOption {
 // Overwrites existing values with values from environment (if present)
 func FromEnv() ConfigOption {
 	return func(c *ConfigT) *ConfigT {
+		err := dotenv.Load("./final.env")
+		if err != nil {
+			log.Error("final.env file nonexistent")
+		}
+		baseFile := os.ExpandEnv(genv.Key("SERVER_ADDRESS").Default("./.env").String())
+		err = dotenv.Load(baseFile)
+		if err != nil {
+			log.Error(baseFile + " file nonexistent")
+		}
+
 		c = &ConfigT{
 			Server: &ServerT{
-				AddressHTTP:  os.ExpandEnv(genv.Key("SERVER_ADDRESS").Default(c.Server.AddressHTTP).String()),
-				AddressGRPC:  os.ExpandEnv(genv.Key("SERVER_ADDRESS_GRPC").Default(c.Server.AddressGRPC).String()),
+				Address:      os.ExpandEnv(genv.Key("SERVER_ADDRESS").Default(c.Server.Address).String()),
 				HTTPS:        genv.Key("HTTPS").Default(c.Server.HTTPS).Bool(),
-				LoggingLevel: os.ExpandEnv(genv.Key("LOGGING_LEVEL").Default(c.Server.AddressGRPC).String()),
+				LoggingLevel: os.ExpandEnv(genv.Key("LOGGING_LEVEL").Default(c.Server.LoggingLevel).String()),
 				SessionLife:  genv.Key("SESSION_LIFE").Default(c.Server.SessionLife).Int(),
 			},
 			Data: &DataStorageT{
@@ -89,6 +94,15 @@ func FromEnv() ConfigOption {
 			},
 		}
 
+		return c
+	}
+}
+
+// WithBuild
+// Initializes default values of type ConfigT
+func WithBuild(t *BuildT) ConfigOption {
+	return func(c *ConfigT) *ConfigT {
+		c.Build = t
 		return c
 	}
 }

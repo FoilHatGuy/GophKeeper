@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"os"
+	"path"
 	"strings"
 	"time"
 
@@ -50,6 +52,10 @@ type StorageController interface {
 	GetCardHead(ctx context.Context, uid string) (head CategoryHead, err error)
 	AddCard(ctx context.Context, uid, dataID, metadata string, data []byte) (err error)
 	GetCard(ctx context.Context, uid, dataID string) (metadata string, data []byte, err error)
+
+	GetFileHead(ctx context.Context, uid string) (head CategoryHead, err error)
+	AddFile(ctx context.Context, uid, dataID, metadata string, data []byte) (err error)
+	GetFile(ctx context.Context, uid, dataID string) (metadata string, data []byte, err error)
 }
 
 // New returns a new instance of database controller
@@ -314,4 +320,60 @@ func (s *storageWrapper) GetCard(
 		return "", nil, fmt.Errorf("card get: %w", err)
 	}
 	return newData.Metadata, newData.Data, nil
+}
+
+// File section
+
+// GetFileHead operates with database using GORM
+func (s *storageWrapper) GetFileHead(ctx context.Context, uid string) (head CategoryHead, err error) {
+	op := s.PSQL.Model(&SecureFile{}).WithContext(ctx).Where("uid = ?", uid).Find(&head)
+	err = op.Error
+	logrus.Debug("PSQL loaded data for login pass pair")
+	if err != nil {
+		return nil, fmt.Errorf("credentials head get: %w", err)
+	}
+	return head, nil
+}
+
+// AddFile operates with database using GORM
+func (s *storageWrapper) AddFile(ctx context.Context, uid, dataID, metadata string, data []byte) (err error) {
+	err = os.WriteFile(path.Join(s.conf.Data.FileSavePath, dataID), data, 0o600)
+	if err != nil {
+		return fmt.Errorf("file write failed: %w", err)
+	}
+
+	err = s.PSQL.WithContext(ctx).Create(&SecureFile{
+		ID:       dataID,
+		Metadata: metadata,
+		UID:      uid,
+	}).Error
+	logrus.Debug("PSQL added data for login pass pair", dataID)
+	if err != nil {
+		return fmt.Errorf("file add: %w", err)
+	}
+	return nil
+}
+
+// GetFile operates with database using GORM
+func (s *storageWrapper) GetFile(
+	ctx context.Context,
+	uid, dataID string,
+) (metadata string, data []byte, err error) {
+	var newData SecureText
+	err = s.PSQL.
+		WithContext(ctx).
+		Model(&SecureFile{}).
+		Where("uid = ?", uid).
+		Where("id = ?", dataID).
+		Take(&newData).
+		Error
+	logrus.Debug("PSQL loaded data for login pass pair", dataID)
+	if err != nil {
+		return "", nil, fmt.Errorf("file get: %w", err)
+	}
+	data, err = os.ReadFile(path.Join(s.conf.Data.FileSavePath, dataID))
+	if err != nil {
+		return "", nil, fmt.Errorf("file read failed: %w", err)
+	}
+	return newData.Metadata, data, nil
 }

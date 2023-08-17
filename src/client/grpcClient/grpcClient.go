@@ -16,24 +16,43 @@ import (
 	pb "gophKeeper/src/pb"
 )
 
+type GRPCWrapper interface {
+	Authenticate(ctx context.Context, method string, req, reply interface{}, cc *grpc.ClientConn,
+		invoker grpc.UnaryInvoker, opts ...grpc.CallOption) (err error)
+	Login(ctx context.Context, login, password string) error
+	KickOtherSession(ctx context.Context, login, password string) error
+	Register(ctx context.Context, login, password string) error
+	Ping(ctx context.Context) error
+	GetCategoryHead(ctx context.Context, category Category) (head []*CategoryEntry, err error)
+	StoreCredData(ctx context.Context, data []byte, meta string) (dataID, metadata string, err error)
+	LoadCredData(ctx context.Context, dataID string) (data []byte, err error)
+	StoreTextData(ctx context.Context, data []byte, meta string) (dataID, metadata string, err error)
+	LoadTextData(ctx context.Context, dataID string) (data []byte, err error)
+	StoreCardData(ctx context.Context, data []byte, meta string) (dataID, metadata string, err error)
+	LoadCardData(ctx context.Context, dataID string) (data []byte, err error)
+	StoreFileData(ctx context.Context, data []byte, meta string) (dataID, metadata string, err error)
+	LoadFileData(ctx context.Context, dataID string) (data []byte, err error)
+}
+
 var ErrAlreadyLoggedIn = errors.New("user already logged in")
 
-func New(config *cfg.ConfigT) (client *GRPCClient, callback func() error) {
-	client = &GRPCClient{
+func New(config *cfg.ConfigT) (client GRPCWrapper, callback func() error) {
+	newClient := &GRPCClient{
 		config: config,
 	}
 	conn, err := grpc.Dial(
-		config.ServerAddressGRPC,
+		config.ServerAddress,
+		// gosec:need to do proper certificate
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
-		grpc.WithUnaryInterceptor(client.Authenticate),
+		grpc.WithUnaryInterceptor(newClient.Authenticate),
 	)
 	if err != nil {
 		panic("connection refused")
 	}
 
-	client.auth = pb.NewAuthClient(conn)
-	client.keep = pb.NewGophKeeperClient(conn)
-	return client, conn.Close
+	newClient.auth = pb.NewAuthClient(conn)
+	newClient.keep = pb.NewGophKeeperClient(conn)
+	return GRPCWrapper(newClient), conn.Close
 }
 
 type GRPCClient struct {
@@ -58,16 +77,12 @@ func (c *GRPCClient) Authenticate(
 		}
 		return nil
 	}
-	ctx = metadata.AppendToOutgoingContext(ctx, "sid", c.sessionID)
+
+	ctx = metadata.NewOutgoingContext(ctx, metadata.Pairs("sid", c.sessionID))
 	err = invoker(ctx, method, req, reply, cc, opts...)
 	if err != nil {
 		return fmt.Errorf("authenticate middleware error: %w", err)
 	}
-	md, ok := metadata.FromIncomingContext(ctx)
-	if !ok {
-		return errors.New("no metadata")
-	}
-	c.sessionID = md.Get("sid")[0]
 	return nil
 }
 
@@ -112,7 +127,7 @@ func (c *GRPCClient) Register(ctx context.Context, login, password string) error
 }
 
 func (c *GRPCClient) Ping(ctx context.Context) error {
-	_, err := c.keep.Ping(ctx, &pb.Empty{})
+	_, err := c.auth.Ping(ctx, &pb.Empty{})
 	if err != nil {
 		return fmt.Errorf("gRPC ping returned error: %w", err)
 	}
@@ -127,10 +142,10 @@ type CategoryEntry struct {
 type Category pb.Category
 
 const (
-	CategoryCred Category = Category(pb.Category_CATEGORY_CRED)
-	CategoryText Category = Category(pb.Category_CATEGORY_TEXT)
-	CategoryCard Category = Category(pb.Category_CATEGORY_CARD)
-	CategoryFile Category = Category(pb.Category_CATEGORY_FILE)
+	CategoryCred = Category(pb.Category_CATEGORY_CRED)
+	CategoryText = Category(pb.Category_CATEGORY_TEXT)
+	CategoryCard = Category(pb.Category_CATEGORY_CARD)
+	CategoryFile = Category(pb.Category_CATEGORY_FILE)
 )
 
 func (c *GRPCClient) GetCategoryHead(ctx context.Context, category Category) (head []*CategoryEntry, err error) {
@@ -151,20 +166,20 @@ func (c *GRPCClient) GetCategoryHead(ctx context.Context, category Category) (he
 	return head, nil
 }
 
-func (c *GRPCClient) StoreCredentials(ctx context.Context, data []byte, meta string,
+func (c *GRPCClient) StoreCredData(ctx context.Context, data []byte, meta string,
 ) (dataID, metadata string, err error) {
-	resp, err := c.keep.StoreCredentials(ctx, &pb.SecureData_DTO{
+	resp, err := c.keep.StoreCredData(ctx, &pb.SecureData_DTO{
 		Data:     data,
 		Metadata: meta,
 	})
 	if err != nil {
-		return "", "", fmt.Errorf("grpc call store creds: %w", err)
+		return "", "", fmt.Errorf("grpc call add creds: %w", err)
 	}
 	return resp.GetID(), meta, nil
 }
 
-func (c *GRPCClient) LoadCredentials(ctx context.Context, dataID string) (data []byte, err error) {
-	resp, err := c.keep.LoadCredentials(ctx, &pb.DataID_DTO{
+func (c *GRPCClient) LoadCredData(ctx context.Context, dataID string) (data []byte, err error) {
+	resp, err := c.keep.LoadCredData(ctx, &pb.DataID_DTO{
 		ID: dataID,
 	})
 	if err != nil {
@@ -179,7 +194,7 @@ func (c *GRPCClient) StoreTextData(ctx context.Context, data []byte, meta string
 		Metadata: meta,
 	})
 	if err != nil {
-		return "", "", fmt.Errorf("grpc call load text: %w", err)
+		return "", "", fmt.Errorf("grpc call add text: %w", err)
 	}
 	return resp.GetID(), meta, err
 }
@@ -194,24 +209,48 @@ func (c *GRPCClient) LoadTextData(ctx context.Context, dataID string) (data []by
 	return resp.GetData(), err
 }
 
-func (c *GRPCClient) StoreCreditCard(ctx context.Context, data []byte, meta string,
+func (c *GRPCClient) StoreCardData(ctx context.Context, data []byte, meta string,
 ) (dataID, metadata string, err error) {
-	resp, err := c.keep.StoreCreditCard(ctx, &pb.SecureData_DTO{
+	resp, err := c.keep.StoreCardData(ctx, &pb.SecureData_DTO{
 		Data:     data,
 		Metadata: meta,
 	})
 	if err != nil {
-		return "", "", fmt.Errorf("grpc call load card: %w", err)
+		return "", "", fmt.Errorf("grpc call add card: %w", err)
 	}
 	return resp.GetID(), meta, err
 }
 
-func (c *GRPCClient) LoadCreditCard(ctx context.Context, dataID string) (data []byte, err error) {
-	resp, err := c.keep.LoadCreditCard(ctx, &pb.DataID_DTO{
+func (c *GRPCClient) LoadCardData(ctx context.Context, dataID string) (data []byte, err error) {
+	resp, err := c.keep.LoadCardData(ctx, &pb.DataID_DTO{
 		ID: dataID,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("grpc call load card: %w", err)
+	}
+	return resp.GetData(), err
+}
+
+func (c *GRPCClient) StoreFileData(ctx context.Context, data []byte, meta string,
+) (dataID, metadata string, err error) {
+	// needs to be stream
+	resp, err := c.keep.StoreFileData(ctx, &pb.SecureData_DTO{
+		Data:     data,
+		Metadata: meta,
+	})
+	if err != nil {
+		return "", "", fmt.Errorf("grpc call add file: %w", err)
+	}
+	return resp.GetID(), meta, err
+}
+
+func (c *GRPCClient) LoadFileData(ctx context.Context, dataID string) (data []byte, err error) {
+	// needs to be stream
+	resp, err := c.keep.LoadFileData(ctx, &pb.DataID_DTO{
+		ID: dataID,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("grpc call load file: %w", err)
 	}
 	return resp.GetData(), err
 }

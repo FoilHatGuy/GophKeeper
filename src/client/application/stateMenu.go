@@ -9,16 +9,16 @@ import (
 )
 
 type stateMenuType struct {
-	stateName string
-	app       *Application
-	config    *cfg.ConfigT
+	stateGetName
+	app    *Application
+	config *cfg.ConfigT
 }
 
 func newMenuState(app *Application, config *cfg.ConfigT) state {
 	return &stateMenuType{
-		app:       app,
-		config:    config,
-		stateName: "Menu view",
+		app:          app,
+		config:       config,
+		stateGetName: stateGetName{stateName: "Menu view"},
 	}
 }
 
@@ -34,7 +34,7 @@ func (s *stateMenuType) execute(ctx context.Context, command string) (resultStat
 	arguments := strings.Split(command, " ")
 	switch {
 	case includes(commandHelp, strings.ToLower(arguments[0])):
-		fmt.Printf("This is Login screen. Available commands:\n"+
+		fmt.Printf("This is Data screen. Available commands:\n"+
 			"help   - %q - shows available commands (this screen)\n"+
 			"open   - %q $category$ - opens one of the categories:\n"+
 			"\t %q - Card information\n"+
@@ -45,6 +45,7 @@ func (s *stateMenuType) execute(ctx context.Context, command string) (resultStat
 			commandHelp,
 			commandOpen, commandCred, commandCard, commandText, commandFile,
 			commandConfig)
+		return s, nil
 
 	case includes(commandOpen, strings.ToLower(arguments[0])):
 		if len(arguments) != 2 {
@@ -72,13 +73,6 @@ func (s *stateMenuType) execute(ctx context.Context, command string) (resultStat
 
 	case includes(commandConfig, strings.ToLower(arguments[0])):
 		return s.app.cat[stateConfig], nil
-
-	default:
-		return s, ErrUnrecognizedCommand
 	}
-	return s, nil
-}
-
-func (s *stateMenuType) getName() string {
-	return s.stateName
+	return s, ErrUnrecognizedCommand
 }
